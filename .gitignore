@@ -1,11 +1,12 @@
 # --- Data and model artifacts: never committed (see data/README.md) ---
 data/raw/*
 !data/raw/.gitkeep
-data/processed/
-data/interim/
-models/
-artifacts/
-reports/generated/
+/data/processed/
+/data/interim/
+# Root-anchored: an unanchored "models/" would also hide src/aml_sentinel/models.
+/models/
+/artifacts/
+/reports/generated/
 *.parquet
 *.csv
 # The small, self-generated synthetic sample IS committed (demo without Kaggle).
