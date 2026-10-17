@@ -432,7 +432,8 @@ def write_dataset(data: SyntheticDataset, out_dir: Path, *, name: str = "Sample"
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     trans = out_dir / f"{name}_Trans.csv"
-    trans.write_text(_csv_lines([RAW_HEADER, *data.transactions]), encoding="utf-8")
+    # newline="\n": byte-identical output on every OS (Windows would write CRLF).
+    trans.write_text(_csv_lines([RAW_HEADER, *data.transactions]), encoding="utf-8", newline="\n")
 
     blocks: list[str] = []
     for attempt in data.attempts:
@@ -443,5 +444,5 @@ def write_dataset(data: SyntheticDataset, out_dir: Path, *, name: str = "Sample"
             + _csv_lines(attempt.rows)
             + f"END LAUNDERING ATTEMPT - {attempt.typology.value}\n"
         )
-    (out_dir / f"{name}_Patterns.txt").write_text("\n".join(blocks), encoding="utf-8")
+    (out_dir / f"{name}_Patterns.txt").write_text("\n".join(blocks), encoding="utf-8", newline="\n")
     return trans
