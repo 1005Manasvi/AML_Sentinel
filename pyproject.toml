@@ -58,9 +58,10 @@ packages = ["aml_sentinel"]
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 
-# scikit-learn ships no type information; keep the exemption as narrow as possible.
+# scikit-learn and laya ship no type information (laya is also optional, absent in CI).
+# Keep the exemption as narrow as possible.
 [[tool.mypy.overrides]]
-module = ["sklearn", "sklearn.*"]
+module = ["sklearn", "sklearn.*", "laya", "laya.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]

@@ -1,0 +1,5 @@
+# Optional System 1b text-model stack (Laya + PyTorch). Not needed by the core
+# pipeline or CI. PyPI's Windows torch wheel is CPU-only; for an NVIDIA GPU, install
+# the CUDA build afterwards from https://download.pytorch.org/whl/cu126 (ADR-013).
+-c base.txt
+laya==0.4.9
