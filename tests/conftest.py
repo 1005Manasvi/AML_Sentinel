@@ -180,6 +180,7 @@ def _isolate_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "DATA_DIR",
         "TRAIN_END",
         "REPORTS_DIR",
+        "MODELS_DIR",
         "VAL_END",
         "TEST_END",
         "ENVIRONMENT",

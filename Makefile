@@ -61,8 +61,10 @@ notebook:
 run:
 	@echo "API and dashboard arrive in Phase 7." && exit 1
 
-train:
-	@echo "Model training arrives in Phase 3." && exit 1
+train:  ## System 1a: LightGBM + calibration vs baseline (needs `make baseline`)
+	$(PY) -m aml_sentinel.cli train-tabular --dataset Sample
+	$(PY) -m aml_sentinel.cli train-tabular --dataset HI-Small
+	$(PY) -m aml_sentinel.cli train-tabular --dataset LI-Small
 
 demo:
 	@echo "Demo mode (bundled sample + small models) arrives in Phase 9." && exit 1
@@ -71,6 +73,7 @@ reproduce:  ## Grows phase by phase until it regenerates every README figure/tab
 	$(MAKE) sample
 	$(MAKE) data
 	$(MAKE) baseline
+	$(MAKE) train
 	$(MAKE) notebook
 
 clean:

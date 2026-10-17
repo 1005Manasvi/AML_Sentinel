@@ -32,6 +32,7 @@ from aml_sentinel.data.synthetic import SyntheticConfig, generate, write_dataset
 from aml_sentinel.exceptions import AmlSentinelError
 from aml_sentinel.integrity import sha256_file
 from aml_sentinel.logging_utils import configure_logging
+from aml_sentinel.models.system1a_report import system1a_command
 from aml_sentinel.rules.baseline import baseline_command
 
 logger = logging.getLogger(__name__)
@@ -131,6 +132,13 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=list(DatasetName),
         default=DatasetName.HI_SMALL,
     )
+    tab = sub.add_parser("train-tabular", help="System 1a: LightGBM + calibration vs baseline")
+    tab.add_argument(
+        "--dataset",
+        type=DatasetName,
+        choices=list(DatasetName),
+        default=DatasetName.HI_SMALL,
+    )
     return parser
 
 
@@ -153,6 +161,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             prepare_data(settings, args.dataset)
         elif args.command == "baseline":
             baseline_command(settings, args.dataset)
+        elif args.command == "train-tabular":
+            system1a_command(settings, args.dataset)
     except AmlSentinelError as exc:
         # Our exceptions carry safe messages; anything else is a bug and should
         # surface with a traceback.
