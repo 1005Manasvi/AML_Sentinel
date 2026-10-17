@@ -84,7 +84,40 @@ To regenerate: `make data && make baseline`. Full reports are in
   means the bar is low, so later phases compare models at **matched alert
   volumes** rather than claiming a big win against this baseline.
 
-Full results arrive in Phases 3–8.
+### System 1a: LightGBM over graph features (Phase 3)
+
+These are measured on the same test split. **FP reduction at matched recall** means
+the model raises the fewest alerts that catch as many laundering transactions as
+the rule baseline, and the table counts how many fewer false positives that
+produces. Both feature variants are shown (ADR-010).
+
+| Dataset | Model | PR-AUC | Precision@1,000 | Alerts at baseline recall (model vs rules) | FP reduction at matched recall | Test ECE raw → calibrated |
+|---|---|---:|---:|---:|---:|---:|
+| HI-Small | rules (static) | 0.0016 | n/a | n/a | n/a | n/a |
+| HI-Small | LightGBM [all] | 0.4162 | 40.9% | 2,830 vs 268,270 | 99.1% | 0.00027 → 0.00036 |
+| HI-Small | LightGBM [no_shortcuts] | 0.3716 | 37.3% | 5,054 vs 268,270 | 98.3% | 0.00026 → 0.00051 |
+| LI-Small | rules (tuned) | 0.0007 | n/a | n/a | n/a | n/a |
+| LI-Small | LightGBM [all] | 0.1011 | 9.9% | 4,012 vs 108,398 | 96.4% | 0.00012 → 0.00032 |
+| LI-Small | LightGBM [no_shortcuts] | 0.0804 | 7.9% | 4,289 vs 108,398 | 96.2% | 0.00013 → 0.00041 |
+
+To regenerate: `make train`. Reports and figures are in [reports/system1a/](reports/system1a/).
+
+**How to read this (caveats):**
+
+- **The large FP reductions come mostly from the weak baseline.** The rules flag
+  9–31% of all transactions at 0.14–0.19% precision, so almost any ranking model
+  beats them by a wide margin. Precision@k and PR-AUC are the fairer view of the
+  model itself.
+- **Removing the shortcut features does not remove the shortcut.** The
+  `no_shortcuts` model never sees payment format, yet 100% of its top-100 HI-Small
+  alerts are ACH. It recovers ACH-ness from correlated amount and flow features.
+- **Calibration fitted on validation made test calibration worse** on both datasets
+  (see the ECE column). On validation, held-out ECE improves 3–6×, but the
+  score-to-label relationship drifts between the two periods (ADR-011). This is
+  reported as is, not tuned away on test.
+- These are results on synthetic data and do not show real-world performance.
+
+Full results arrive in Phases 4–8.
 
 ## Limitations
 

@@ -109,3 +109,49 @@ consequences.
   cannot change the choice.
 - **Metrics are at transaction level** (one alert per transaction). Alert volume is
   reported per day, because analyst workload is what false positives cost.
+
+## ADR-010: System 1a features and the shortcut ablation
+
+- **Features (35).** There are three kinds:
+  - Row features: log USD amount, round amount, hour, weekday, same bank,
+    self-transfer.
+  - Past-only trailing windows: sender payments in 1h and 24h, sender USD in 24h,
+    receiver inflow count and USD in 24h.
+  - Daily graph snapshots, taken from all rows before midnight of the
+    transaction's day: in/out degree and payment counts, USD flows, flow ratio,
+    reciprocal counterparties, directed 3-cycles, history flag and account age.
+    These cover both the sender and the receiver.
+
+  A test checks that deleting every later row leaves earlier features
+  bit-identical.
+- **Shortcut ablation (owner's choice: report both).** `all` uses every feature.
+  `no_shortcuts` drops `payment_format_code` and `cross_currency`.
+- **Measured finding:** dropping the columns does not drop the shortcut. The
+  `no_shortcuts` HI-Small model still ranks only ACH transactions in its top 100,
+  by recovering ACH-ness from correlated amount and flow features. Its ranking
+  quality also stays close to the full model (PR-AUC 0.37 vs 0.42).
+  Simulator-specific signal remains in both variants, so the results must not be
+  read as shortcut-free.
+- **Known issue in the bundled sample:** the synthetic generator also pays every
+  laundering transaction by ACH, so the sample copies the same shortcut. Fixing
+  this is planned for Phase 4, where the generator is extended for structuring.
+
+## ADR-011: Calibration is fitted on validation and does not survive drift
+
+- **Decision:** Platt and isotonic calibrators are compared by time-ordered 2-fold
+  cross-fitting inside validation. The winner, isotonic in all four runs, is
+  refitted on the full validation split and stored as JSON breakpoints, never
+  pickled. Early stopping uses the last training day, so validation is used only
+  for calibration.
+- **Measured finding:**
+  - On held-out validation halves, calibration improves ECE 3–6×.
+  - On test, ECE gets **worse** than the raw LightGBM scores on both datasets.
+    For HI-Small `all` it goes from 0.00027 to 0.00036. Calibrated mean predictions
+    overshoot the observed rate: 0.144% vs 0.111% on HI-Small, and 0.088% vs
+    0.057% on LI-Small.
+  - The relationship between score and label drifts between Sept 7–8 and
+    Sept 9–10.
+- **Consequences:** Phase 4 fusion must not assume validation-calibrated scores are
+  calibrated on test. Phase 8 will evaluate recalibration on a rolling window as a
+  mitigation. Fixing this with test data would be leakage, so the result is
+  reported as measured.
