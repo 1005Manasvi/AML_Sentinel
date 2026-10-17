@@ -257,6 +257,32 @@ def test_load_agent_verifies_and_passes_digests(
         load_agent(ckpt)
 
 
+def test_load_agent_never_lets_the_library_modify_the_checkpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: laya.load rewrites tokenizer_config.json where it loads from."""
+    ckpt = _checkpoint(tmp_path)
+    (ckpt / "tokenizer" / "tokenizer_config.json").write_text("{}", encoding="utf-8")
+    write_manifest(ckpt, source="test", revision="abc")
+    loaded_from: list[str] = []
+
+    def mutating_load(
+        path: str, device: str | None = None, expected_sha256: Any = None
+    ) -> FakeLaya:
+        loaded_from.append(path)
+        (Path(path) / "tokenizer" / "tokenizer_config.json").write_text(
+            '{"x": 1}', encoding="utf-8"
+        )
+        return FakeLaya()
+
+    monkeypatch.setitem(sys.modules, "laya", types.SimpleNamespace(load=mutating_load))
+    load_agent(ckpt)
+    load_agent(ckpt)  # a second load must still verify cleanly
+    assert Path(loaded_from[0]) != ckpt
+    assert not Path(loaded_from[0]).exists()  # temporary copy cleaned up
+    verified_digests(ckpt)
+
+
 def test_load_agent_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(DataNotFoundError):
         verified_digests(tmp_path)

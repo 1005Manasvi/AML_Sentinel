@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
+import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Final, Protocol
@@ -139,7 +141,14 @@ def download_base(dest: Path, *, repo: str = BASE_REPO, revision: str | None = N
 
 
 def load_agent(checkpoint_dir: Path, *, device: str | None = None) -> LayaAgentLike:
-    """Load a verified local Laya checkpoint.
+    """Load a verified local Laya checkpoint without ever letting the library write to it.
+
+    ``laya.load`` rewrites ``tokenizer/tokenizer_config.json`` in the directory it
+    loads from. This was reproduced on Laya 0.4.9 (hash ``5bed9c3a…`` became
+    ``891c0cde…``), and it broke the next integrity check (ADR-017). So the verified
+    files are copied into a fresh temporary directory, verified again there, and
+    loaded from the copy, which is deleted afterwards. Weights and tokenizer are in
+    memory by then. The stored artifact is never modified.
 
     Args:
         checkpoint_dir: Directory with a manifest (see :func:`write_manifest`).
@@ -150,6 +159,7 @@ def load_agent(checkpoint_dir: Path, *, device: str | None = None) -> LayaAgentL
 
     Raises:
         ConfigurationError: If the optional ``laya`` dependency is missing.
+        IntegrityError: If the stored files or their copies fail verification.
     """
     digests = verified_digests(checkpoint_dir)
     try:
@@ -158,7 +168,13 @@ def load_agent(checkpoint_dir: Path, *, device: str | None = None) -> LayaAgentL
         raise ConfigurationError(
             "laya is not installed; pip install -r requirements/laya.txt"
         ) from None
-    agent: LayaAgentLike = laya.load(str(checkpoint_dir), device=device, expected_sha256=digests)
+    with tempfile.TemporaryDirectory(prefix="laya-load-") as tmp:
+        work = Path(tmp)
+        for rel in [*digests, MANIFEST]:
+            (work / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(checkpoint_dir / rel, work / rel)
+        verified_digests(work)  # the copy is what Laya will read
+        agent: LayaAgentLike = laya.load(str(work), device=device, expected_sha256=digests)
     return agent
 
 
