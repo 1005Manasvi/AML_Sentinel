@@ -48,6 +48,11 @@ SAMPLE_FX: Final[dict[str, float]] = {
 _HOME_CURRENCY_WEIGHTS: Final = (0.70, 0.12, 0.06, 0.04, 0.04, 0.04)
 _BENIGN_FORMATS: Final = ("Cheque", "Credit Card", "ACH", "Cash", "Wire")
 _BENIGN_FORMAT_WEIGHTS: Final = (0.38, 0.30, 0.14, 0.12, 0.06)
+# Laundering uses a mix of formats. An all-ACH sample would reproduce IBM's
+# payment-format shortcut and let models learn "ACH = laundering" (ADR-010).
+_LAUNDERING_FORMATS: Final = ("ACH", "Wire", "Cheque", "Credit Card", "Cash")
+_LAUNDERING_FORMAT_WEIGHTS: Final = (0.45, 0.2, 0.15, 0.1, 0.1)
+REPORTING_THRESHOLD_USD: Final = 10_000.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -232,6 +237,21 @@ class _Simulator:
                 _Row(self.time(), c, shop, self.amount(60, 0.6), "Credit Card", 0)
                 for c in customers
             ]
+            # Car dealer: a few legitimate large cash payments, some just under the
+            # threshold. This is the benign look-alike for structuring.
+            dealer, *buyers = self.distinct_accounts(int(self.rng.integers(3, 7)))
+            day = self.window_start(3.0)
+            rows += [
+                _Row(
+                    self.time(day_from=day, span_days=3),
+                    b,
+                    dealer,
+                    float(self.rng.uniform(5_000, 9_900)),
+                    "Cash",
+                    0,
+                )
+                for b in buyers
+            ]
             # Roommates: rent and bill reimbursements that form a short benign cycle.
             a, b, c = self.distinct_accounts(3)
             day = self.window_start(3.0)
@@ -261,11 +281,33 @@ class _Simulator:
             Typology.STACK: self._stack,
             Typology.BIPARTITE: self._bipartite,
             Typology.RANDOM: self._random_walk,
+            Typology.STRUCTURING: self._structuring,
         }
         return builders[typology]()
 
-    def _bad(self, src: _Account, dst: _Account, ts: datetime, usd: float) -> _Row:
-        return _Row(ts, src, dst, usd, "ACH", 1)
+    def _bad(
+        self, src: _Account, dst: _Account, ts: datetime, usd: float, fmt: str | None = None
+    ) -> _Row:
+        if fmt is None:
+            fmt = str(self.rng.choice(_LAUNDERING_FORMATS, p=_LAUNDERING_FORMAT_WEIGHTS))
+        return _Row(ts, src, dst, usd, fmt, 1)
+
+    def _structuring(self) -> tuple[str, list[_Row]]:
+        # Smurfing: many cash deposits just under the reporting threshold into one account.
+        k = int(self.rng.integers(6, 16))
+        dst, *smurfs = self.distinct_accounts(k + 1)
+        day = self.window_start(3)
+        rows = [
+            self._bad(
+                s,
+                dst,
+                self.time(day_from=day, span_days=3),
+                float(self.rng.uniform(0.80, 0.995)) * REPORTING_THRESHOLD_USD,
+                "Cash",
+            )
+            for s in smurfs
+        ]
+        return f"{k} sub-threshold cash deposits", rows
 
     def _fan_out(self) -> tuple[str, list[_Row]]:
         k = int(self.rng.integers(5, 13))

@@ -6,33 +6,33 @@ Measured on the test split. The model is fitted on train, early-stopped on the l
 
 | Model | PR-AUC | ROC-AUC | Calibrator | ECE raw | ECE calibrated | Brier calibrated |
 |---|---:|---:|---|---:|---:|---:|
-| rules (baseline) | 0.0599 | 0.7531 | n/a | n/a | n/a | n/a |
-| lightgbm[all] | 0.6856 | 0.9920 | isotonic | 0.00646 | 0.01706 | 0.015270 |
-| lightgbm[no_shortcuts] | 0.4471 | 0.9570 | platt | 0.00444 | 0.02481 | 0.017803 |
+| rules (baseline) | 0.0452 | 0.9270 | n/a | n/a | n/a | n/a |
+| lightgbm[all] | 0.1823 | 0.9537 | isotonic | 0.01137 | 0.01853 | 0.008283 |
+| lightgbm[no_shortcuts] | 0.0871 | 0.9313 | platt | 0.01635 | 0.01774 | 0.008977 |
 
-Test base rate: 1.948%.
+Test base rate: 0.686%.
 
 ## Against the rule baseline at matched operating points
 
 | Model | Comparison | Alerts | Model precision | Model recall | Baseline precision | Baseline recall | FP reduction |
 |---|---|---:|---:|---:|---:|---:|---:|
-| lightgbm[all] | matched volume | 184 | 12.50% | 100.00% | 8.15% | 65.22% | 4.7% |
-| lightgbm[all] | matched recall | 26 | 57.69% | 65.22% | 8.15% | 65.22% | 93.5% |
-| lightgbm[no_shortcuts] | matched volume | 184 | 10.87% | 86.96% | 8.15% | 65.22% | 3.0% |
-| lightgbm[no_shortcuts] | matched recall | 53 | 28.30% | 65.22% | 8.15% | 65.22% | 77.5% |
+| lightgbm[all] | matched volume | 177 | 3.95% | 87.50% | 4.52% | 100.00% | -0.6% |
+| lightgbm[all] | matched recall | 285 | 2.81% | 100.00% | 4.52% | 100.00% | -63.9% |
+| lightgbm[no_shortcuts] | matched volume | 177 | 3.95% | 87.50% | 4.52% | 100.00% | -0.6% |
+| lightgbm[no_shortcuts] | matched recall | 259 | 3.09% | 100.00% | 4.52% | 100.00% | -48.5% |
 
 ## Analyst budgets (precision@k)
 
 | Model | k | Precision | Recall |
 |---|---:|---:|---:|
-| lightgbm[all] | 100 | 23.00% | 100.00% |
-| lightgbm[all] | 1,000 | 2.30% | 100.00% |
-| lightgbm[all] | 10,000 | 1.95% | 100.00% |
-| lightgbm[no_shortcuts] | 100 | 18.00% | 78.26% |
-| lightgbm[no_shortcuts] | 1,000 | 2.30% | 100.00% |
-| lightgbm[no_shortcuts] | 10,000 | 1.95% | 100.00% |
+| lightgbm[all] | 100 | 7.00% | 87.50% |
+| lightgbm[all] | 1,000 | 0.80% | 100.00% |
+| lightgbm[all] | 10,000 | 0.69% | 100.00% |
+| lightgbm[no_shortcuts] | 100 | 6.00% | 75.00% |
+| lightgbm[no_shortcuts] | 1,000 | 0.80% | 100.00% |
+| lightgbm[no_shortcuts] | 10,000 | 0.69% | 100.00% |
 
 ## Top features by gain
 
-- **all**: payment_format_code, amount_usd_log, dst_usd_24h_log, src_usd_24h_log, src_tx_24h, src_in_usd_log, src_out_usd_log, weekday
-- **no_shortcuts**: amount_usd_log, dst_usd_24h_log, src_usd_24h_log, src_tx_24h, src_in_usd_log, src_out_usd_log, hour, src_age_days
+- **all**: amount_usd_log, dst_flow_ratio, payment_format_code, dst_usd_24h_log, src_usd_24h_log, dst_age_days, src_age_days, dst_out_tx
+- **no_shortcuts**: amount_usd_log, dst_flow_ratio, dst_usd_24h_log, dst_age_days, dst_out_tx, src_usd_24h_log, self_transfer, src_age_days

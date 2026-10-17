@@ -3,7 +3,7 @@
   "seed": 42,
   "n_high_risk_banks": 1,
   "tuning": {
-    "train_f1": 0.23188405797101452,
+    "train_f1": 0.30140845070422534,
     "n_candidates": 560
   },
   "variants": {
@@ -23,62 +23,62 @@
       },
       "val": {
         "overall": {
-          "n": 1301,
-          "positives": 69,
-          "alerts": 252,
-          "tp": 20,
-          "fp": 232,
-          "fn": 49,
-          "tn": 1000,
-          "precision": 0.07936507936507936,
-          "recall": 0.2898550724637681,
-          "false_positive_rate": 0.18831168831168832,
-          "alert_rate": 0.19369715603382015,
-          "f1": 0.12461059190031151
+          "n": 1279,
+          "positives": 39,
+          "alerts": 251,
+          "tp": 17,
+          "fp": 234,
+          "fn": 22,
+          "tn": 1006,
+          "precision": 0.06772908366533864,
+          "recall": 0.4358974358974359,
+          "false_positive_rate": 0.18870967741935485,
+          "alert_rate": 0.1962470680218921,
+          "f1": 0.11724137931034484
         },
-        "alerts_per_day": 126.0,
+        "alerts_per_day": 125.5,
         "per_rule": {
           "rule_amount": {
-            "n": 1301,
-            "positives": 69,
-            "alerts": 82,
-            "tp": 11,
+            "n": 1279,
+            "positives": 39,
+            "alerts": 88,
+            "tp": 17,
             "fp": 71,
-            "fn": 58,
-            "tn": 1161,
-            "precision": 0.13414634146341464,
-            "recall": 0.15942028985507245,
-            "false_positive_rate": 0.05762987012987013,
-            "alert_rate": 0.06302843966179862,
-            "f1": 0.1456953642384106
+            "fn": 22,
+            "tn": 1169,
+            "precision": 0.19318181818181818,
+            "recall": 0.4358974358974359,
+            "false_positive_rate": 0.05725806451612903,
+            "alert_rate": 0.0688037529319781,
+            "f1": 0.2677165354330709
           },
           "rule_velocity": {
-            "n": 1301,
-            "positives": 69,
+            "n": 1279,
+            "positives": 39,
             "alerts": 40,
             "tp": 0,
             "fp": 40,
-            "fn": 69,
-            "tn": 1192,
+            "fn": 39,
+            "tn": 1200,
             "precision": 0.0,
             "recall": 0.0,
-            "false_positive_rate": 0.032467532467532464,
-            "alert_rate": 0.030745580322828592,
+            "false_positive_rate": 0.03225806451612903,
+            "alert_rate": 0.03127443315089914,
             "f1": null
           },
           "rule_jurisdiction": {
-            "n": 1301,
-            "positives": 69,
-            "alerts": 143,
-            "tp": 9,
-            "fp": 134,
-            "fn": 60,
-            "tn": 1098,
-            "precision": 0.06293706293706294,
-            "recall": 0.13043478260869565,
-            "false_positive_rate": 0.10876623376623376,
-            "alert_rate": 0.10991544965411222,
-            "f1": 0.0849056603773585
+            "n": 1279,
+            "positives": 39,
+            "alerts": 137,
+            "tp": 1,
+            "fp": 136,
+            "fn": 38,
+            "tn": 1104,
+            "precision": 0.0072992700729927005,
+            "recall": 0.02564102564102564,
+            "false_positive_rate": 0.10967741935483871,
+            "alert_rate": 0.10711493354182955,
+            "f1": 0.011363636363636364
           }
         },
         "recall_by_typology": {
@@ -88,42 +88,32 @@
             "recall": 0.0
           },
           "CYCLE": {
-            "positives": 2,
-            "caught": 0,
-            "recall": 0.0
-          },
-          "FAN-IN": {
-            "positives": 17,
+            "positives": 6,
             "caught": 6,
-            "recall": 0.35294117647058826
+            "recall": 1.0
           },
           "FAN-OUT": {
-            "positives": 4,
-            "caught": 1,
-            "recall": 0.25
+            "positives": 6,
+            "caught": 4,
+            "recall": 0.6666666666666666
           },
           "GATHER-SCATTER": {
-            "positives": 6,
+            "positives": 10,
             "caught": 0,
             "recall": 0.0
           },
           "RANDOM": {
-            "positives": 10,
-            "caught": 7,
-            "recall": 0.7
+            "positives": 1,
+            "caught": 1,
+            "recall": 1.0
           },
           "SCATTER-GATHER": {
-            "positives": 14,
-            "caught": 4,
-            "recall": 0.2857142857142857
-          },
-          "STACK": {
-            "positives": 3,
-            "caught": 2,
-            "recall": 0.6666666666666666
-          },
-          "undocumented": {
             "positives": 10,
+            "caught": 6,
+            "recall": 0.6
+          },
+          "STRUCTURING": {
+            "positives": 3,
             "caught": 0,
             "recall": 0.0
           }
@@ -131,94 +121,84 @@
       },
       "test": {
         "overall": {
-          "n": 1181,
-          "positives": 23,
+          "n": 1166,
+          "positives": 8,
           "alerts": 290,
-          "tp": 5,
-          "fp": 285,
-          "fn": 18,
-          "tn": 873,
-          "precision": 0.017241379310344827,
-          "recall": 0.21739130434782608,
-          "false_positive_rate": 0.24611398963730569,
-          "alert_rate": 0.2455546147332769,
-          "f1": 0.03194888178913738
+          "tp": 4,
+          "fp": 286,
+          "fn": 4,
+          "tn": 872,
+          "precision": 0.013793103448275862,
+          "recall": 0.5,
+          "false_positive_rate": 0.2469775474956822,
+          "alert_rate": 0.24871355060034306,
+          "f1": 0.026845637583892617
         },
         "alerts_per_day": 145.0,
         "per_rule": {
           "rule_amount": {
-            "n": 1181,
-            "positives": 23,
-            "alerts": 70,
-            "tp": 2,
+            "n": 1166,
+            "positives": 8,
+            "alerts": 71,
+            "tp": 3,
             "fp": 68,
-            "fn": 21,
+            "fn": 5,
             "tn": 1090,
-            "precision": 0.02857142857142857,
-            "recall": 0.08695652173913043,
+            "precision": 0.04225352112676056,
+            "recall": 0.375,
             "false_positive_rate": 0.05872193436960276,
-            "alert_rate": 0.05927180355630821,
-            "f1": 0.04301075268817204
+            "alert_rate": 0.060891938250428816,
+            "f1": 0.0759493670886076
           },
           "rule_velocity": {
-            "n": 1181,
-            "positives": 23,
+            "n": 1166,
+            "positives": 8,
             "alerts": 96,
             "tp": 0,
             "fp": 96,
-            "fn": 23,
+            "fn": 8,
             "tn": 1062,
             "precision": 0.0,
             "recall": 0.0,
             "false_positive_rate": 0.08290155440414508,
-            "alert_rate": 0.08128704487722269,
+            "alert_rate": 0.0823327615780446,
             "f1": null
           },
           "rule_jurisdiction": {
-            "n": 1181,
-            "positives": 23,
-            "alerts": 139,
-            "tp": 4,
-            "fp": 135,
-            "fn": 19,
-            "tn": 1023,
-            "precision": 0.02877697841726619,
-            "recall": 0.17391304347826086,
-            "false_positive_rate": 0.11658031088082901,
-            "alert_rate": 0.11769686706181202,
-            "f1": 0.04938271604938272
+            "n": 1166,
+            "positives": 8,
+            "alerts": 138,
+            "tp": 2,
+            "fp": 136,
+            "fn": 6,
+            "tn": 1022,
+            "precision": 0.014492753623188406,
+            "recall": 0.25,
+            "false_positive_rate": 0.11744386873920552,
+            "alert_rate": 0.1183533447684391,
+            "f1": 0.0273972602739726
           }
         },
         "recall_by_typology": {
-          "FAN-IN": {
-            "positives": 1,
-            "caught": 1,
-            "recall": 1.0
-          },
-          "FAN-OUT": {
-            "positives": 7,
-            "caught": 0,
-            "recall": 0.0
-          },
-          "GATHER-SCATTER": {
+          "BIPARTITE": {
             "positives": 2,
             "caught": 0,
             "recall": 0.0
           },
-          "RANDOM": {
+          "FAN-OUT": {
+            "positives": 3,
+            "caught": 3,
+            "recall": 1.0
+          },
+          "GATHER-SCATTER": {
+            "positives": 2,
+            "caught": 1,
+            "recall": 0.5
+          },
+          "SCATTER-GATHER": {
             "positives": 1,
             "caught": 0,
             "recall": 0.0
-          },
-          "SCATTER-GATHER": {
-            "positives": 8,
-            "caught": 2,
-            "recall": 0.25
-          },
-          "STACK": {
-            "positives": 4,
-            "caught": 2,
-            "recall": 0.5
           }
         }
       }
@@ -237,202 +217,182 @@
       },
       "val": {
         "overall": {
-          "n": 1301,
-          "positives": 69,
-          "alerts": 178,
-          "tp": 37,
-          "fp": 141,
-          "fn": 32,
-          "tn": 1091,
-          "precision": 0.20786516853932585,
-          "recall": 0.5362318840579711,
-          "false_positive_rate": 0.11444805194805195,
-          "alert_rate": 0.13681783243658724,
-          "f1": 0.29959514170040485
+          "n": 1279,
+          "positives": 39,
+          "alerts": 174,
+          "tp": 29,
+          "fp": 145,
+          "fn": 10,
+          "tn": 1095,
+          "precision": 0.16666666666666666,
+          "recall": 0.7435897435897436,
+          "false_positive_rate": 0.11693548387096774,
+          "alert_rate": 0.13604378420641125,
+          "f1": 0.27230046948356806
         },
-        "alerts_per_day": 89.0,
+        "alerts_per_day": 87.0,
         "per_rule": {
           "rule_amount": {
-            "n": 1301,
-            "positives": 69,
-            "alerts": 178,
-            "tp": 37,
-            "fp": 141,
-            "fn": 32,
-            "tn": 1091,
-            "precision": 0.20786516853932585,
-            "recall": 0.5362318840579711,
-            "false_positive_rate": 0.11444805194805195,
-            "alert_rate": 0.13681783243658724,
-            "f1": 0.29959514170040485
+            "n": 1279,
+            "positives": 39,
+            "alerts": 174,
+            "tp": 29,
+            "fp": 145,
+            "fn": 10,
+            "tn": 1095,
+            "precision": 0.16666666666666666,
+            "recall": 0.7435897435897436,
+            "false_positive_rate": 0.11693548387096774,
+            "alert_rate": 0.13604378420641125,
+            "f1": 0.27230046948356806
           },
           "rule_velocity": {
-            "n": 1301,
-            "positives": 69,
-            "alerts": 921,
-            "tp": 48,
-            "fp": 873,
-            "fn": 21,
-            "tn": 359,
-            "precision": 0.05211726384364821,
-            "recall": 0.6956521739130435,
-            "false_positive_rate": 0.7086038961038961,
-            "alert_rate": 0.7079169869331283,
-            "f1": 0.09696969696969697
+            "n": 1279,
+            "positives": 39,
+            "alerts": 900,
+            "tp": 28,
+            "fp": 872,
+            "fn": 11,
+            "tn": 368,
+            "precision": 0.03111111111111111,
+            "recall": 0.717948717948718,
+            "false_positive_rate": 0.7032258064516129,
+            "alert_rate": 0.7036747458952306,
+            "f1": 0.05963791267305644
           },
           "rule_jurisdiction": {
-            "n": 1301,
-            "positives": 69,
-            "alerts": 143,
-            "tp": 9,
-            "fp": 134,
-            "fn": 60,
-            "tn": 1098,
-            "precision": 0.06293706293706294,
-            "recall": 0.13043478260869565,
-            "false_positive_rate": 0.10876623376623376,
-            "alert_rate": 0.10991544965411222,
-            "f1": 0.0849056603773585
+            "n": 1279,
+            "positives": 39,
+            "alerts": 137,
+            "tp": 1,
+            "fp": 136,
+            "fn": 38,
+            "tn": 1104,
+            "precision": 0.0072992700729927005,
+            "recall": 0.02564102564102564,
+            "false_positive_rate": 0.10967741935483871,
+            "alert_rate": 0.10711493354182955,
+            "f1": 0.011363636363636364
           }
         },
         "recall_by_typology": {
           "BIPARTITE": {
             "positives": 3,
-            "caught": 2,
-            "recall": 0.6666666666666666
+            "caught": 0,
+            "recall": 0.0
           },
           "CYCLE": {
-            "positives": 2,
-            "caught": 2,
+            "positives": 6,
+            "caught": 6,
             "recall": 1.0
           },
-          "FAN-IN": {
-            "positives": 17,
-            "caught": 1,
-            "recall": 0.058823529411764705
-          },
           "FAN-OUT": {
-            "positives": 4,
-            "caught": 3,
-            "recall": 0.75
+            "positives": 6,
+            "caught": 4,
+            "recall": 0.6666666666666666
           },
           "GATHER-SCATTER": {
-            "positives": 6,
-            "caught": 2,
-            "recall": 0.3333333333333333
+            "positives": 10,
+            "caught": 5,
+            "recall": 0.5
           },
           "RANDOM": {
+            "positives": 1,
+            "caught": 1,
+            "recall": 1.0
+          },
+          "SCATTER-GATHER": {
             "positives": 10,
             "caught": 10,
             "recall": 1.0
           },
-          "SCATTER-GATHER": {
-            "positives": 14,
-            "caught": 11,
-            "recall": 0.7857142857142857
-          },
-          "STACK": {
+          "STRUCTURING": {
             "positives": 3,
-            "caught": 2,
-            "recall": 0.6666666666666666
-          },
-          "undocumented": {
-            "positives": 10,
-            "caught": 4,
-            "recall": 0.4
+            "caught": 3,
+            "recall": 1.0
           }
         }
       },
       "test": {
         "overall": {
-          "n": 1181,
-          "positives": 23,
-          "alerts": 184,
-          "tp": 15,
+          "n": 1166,
+          "positives": 8,
+          "alerts": 177,
+          "tp": 8,
           "fp": 169,
-          "fn": 8,
+          "fn": 0,
           "tn": 989,
-          "precision": 0.08152173913043478,
-          "recall": 0.6521739130434783,
+          "precision": 0.04519774011299435,
+          "recall": 1.0,
           "false_positive_rate": 0.1459412780656304,
-          "alert_rate": 0.15580016934801016,
-          "f1": 0.14492753623188406
+          "alert_rate": 0.15180102915951973,
+          "f1": 0.08648648648648648
         },
-        "alerts_per_day": 92.0,
+        "alerts_per_day": 88.5,
         "per_rule": {
           "rule_amount": {
-            "n": 1181,
-            "positives": 23,
-            "alerts": 184,
-            "tp": 15,
+            "n": 1166,
+            "positives": 8,
+            "alerts": 177,
+            "tp": 8,
             "fp": 169,
-            "fn": 8,
+            "fn": 0,
             "tn": 989,
-            "precision": 0.08152173913043478,
-            "recall": 0.6521739130434783,
+            "precision": 0.04519774011299435,
+            "recall": 1.0,
             "false_positive_rate": 0.1459412780656304,
-            "alert_rate": 0.15580016934801016,
-            "f1": 0.14492753623188406
+            "alert_rate": 0.15180102915951973,
+            "f1": 0.08648648648648648
           },
           "rule_velocity": {
-            "n": 1181,
-            "positives": 23,
-            "alerts": 865,
-            "tp": 18,
-            "fp": 847,
-            "fn": 5,
-            "tn": 311,
-            "precision": 0.020809248554913295,
-            "recall": 0.782608695652174,
-            "false_positive_rate": 0.731433506044905,
-            "alert_rate": 0.7324301439458086,
-            "f1": 0.040540540540540536
+            "n": 1166,
+            "positives": 8,
+            "alerts": 852,
+            "tp": 6,
+            "fp": 846,
+            "fn": 2,
+            "tn": 312,
+            "precision": 0.007042253521126761,
+            "recall": 0.75,
+            "false_positive_rate": 0.7305699481865285,
+            "alert_rate": 0.7307032590051458,
+            "f1": 0.013953488372093023
           },
           "rule_jurisdiction": {
-            "n": 1181,
-            "positives": 23,
-            "alerts": 139,
-            "tp": 4,
-            "fp": 135,
-            "fn": 19,
-            "tn": 1023,
-            "precision": 0.02877697841726619,
-            "recall": 0.17391304347826086,
-            "false_positive_rate": 0.11658031088082901,
-            "alert_rate": 0.11769686706181202,
-            "f1": 0.04938271604938272
+            "n": 1166,
+            "positives": 8,
+            "alerts": 138,
+            "tp": 2,
+            "fp": 136,
+            "fn": 6,
+            "tn": 1022,
+            "precision": 0.014492753623188406,
+            "recall": 0.25,
+            "false_positive_rate": 0.11744386873920552,
+            "alert_rate": 0.1183533447684391,
+            "f1": 0.0273972602739726
           }
         },
         "recall_by_typology": {
-          "FAN-IN": {
-            "positives": 1,
-            "caught": 1,
+          "BIPARTITE": {
+            "positives": 2,
+            "caught": 2,
             "recall": 1.0
           },
           "FAN-OUT": {
-            "positives": 7,
-            "caught": 7,
+            "positives": 3,
+            "caught": 3,
             "recall": 1.0
           },
           "GATHER-SCATTER": {
             "positives": 2,
-            "caught": 0,
-            "recall": 0.0
-          },
-          "RANDOM": {
-            "positives": 1,
-            "caught": 1,
+            "caught": 2,
             "recall": 1.0
           },
           "SCATTER-GATHER": {
-            "positives": 8,
-            "caught": 5,
-            "recall": 0.625
-          },
-          "STACK": {
-            "positives": 4,
+            "positives": 1,
             "caught": 1,
-            "recall": 0.25
+            "recall": 1.0
           }
         }
       }
