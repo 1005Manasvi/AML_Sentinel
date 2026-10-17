@@ -51,10 +51,11 @@ separate data-protection impact assessment, legal review and model validation.
 | Data poisoning | *planned* | Phase 3+ |
 | Model evasion (for example, splitting amounts under thresholds) | *planned*: graph features and System 2 detectors | Phase 3/5 |
 | Prompt injection via transaction fields | Alert summaries are rendered only from numeric features through fixed templates, with no free text or IDs. A character allowlist, a length cap and an instruction to treat the state as data apply on top. Every model answer is schema-validated (`parse_answers`). The SAR step follows in Phase 6 | Done for System 1; SAR in Phase 6 |
-| Data exfiltration to external LLMs | Summaries carry no identifiers. The Jev outbound fields are documented below. SAR pseudonymisation follows in Phase 6 | Partly done |
+| Data exfiltration to external LLMs | Summaries carry no identifiers. SAR facts are pseudonymised (`ACCT-nnn`) before any external call, and the map never leaves the machine. Outbound fields are documented below. The template drafter is the default | Done |
+| Prompt injection into SAR drafting | Case data is sent as delimited JSON, with a system instruction to ignore instructions inside it. The reply must match a strict JSON schema (extra fields are rejected). Every account, amount and date is checked against the case facts, and unknown tokens make the draft fall back to the template. The "DRAFT - requires analyst review" stamp is always added | Done |
 | Jev used with real data | The adapter is disabled by default and needs `JEV_ENABLED` plus a key. It raises `SyntheticDataRequiredError` unless the batch is explicitly `is_synthetic=True`, which defaults to False. A test proves nothing is sent | Done |
 | Tampered model weights | Laya checkpoints are verified against a SHA-256 manifest and also through Laya's `expected_sha256` before parsing. Weights are safetensors only | Done |
-| Insider misuse | *planned*: roles, an append-only audit log, no sensitive values in logs | Phase 7 |
+| Insider misuse | Append-only, hash-chained audit log (`aml_sentinel.audit`): every SAR generation is recorded with who, what, when and the case. Details are restricted to an allowlist of non-sensitive keys. API roles arrive in Phase 7 | Partly done |
 
 ## What leaves the machine
 
@@ -62,6 +63,7 @@ separate data-protection impact assessment, legal review and model validation.
 |---|---|---|---|
 | Laya | nothing (local) | n/a | always local |
 | Laya base download | huggingface.co | none (download only), pinned commit | once |
+| SAR drafter, external (opt-in) | api.anthropic.com over HTTPS (official `anthropic` SDK) | per case: the case id, `ACCT-nnn` tokens (never real account ids or bank codes), payment amounts, dates and formats, detector pattern names and sizes, and the calibrated risk score; plus the fixed system prompt and the API key | only if `LLM_PROVIDER=external` and `LLM_API_KEY` is set. The template default sends nothing |
 | Jev (benchmark) | api.typesafe.ai over HTTPS | per alert: a numeric summary (amounts, counts, ratios, ages; **no** account IDs, bank codes or names), the fixed questions, the model name, and the API key in the `Authorization` header | only if `JEV_ENABLED=true`, only for synthetic data |
 
 TypeSafe states that Jev is not trained on customer requests
@@ -75,6 +77,17 @@ must **never** be sent.
 - As a backstop, fields whose names look like they hold secrets are masked.
 
 ## Known limitations
+
+- **SAR grounding checks entities, not claims.** Accounts, amounts and dates are
+  verified, but a schema-valid narrative could still characterise the activity
+  wrongly (for example, calling it "legitimate"). The mandatory review stamp and the
+  human analyst are the control for this.
+- **The audit log is tamper-evident, not tamper-proof.** Anyone with write access
+  could rebuild the whole chain. Production would anchor the head hash externally
+  (WORM storage or a signed timestamp).
+- **Amounts and dates are shared with the external drafter.** They are synthetic
+  here. With real data, a privacy review would have to decide whether they may
+  leave the organisation, or whether to coarsen them.
 
 - CI actions are pinned to major-version tags rather than commit SHAs. Pinning to
   SHAs is planned before any non-portfolio use.

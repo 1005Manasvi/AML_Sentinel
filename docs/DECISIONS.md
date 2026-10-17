@@ -289,3 +289,67 @@ consequences.
 - **Decision:** the GNN stays an optional experiment (`make gnn-setup gnn`) and is
   not part of the scoring pipeline. Validation on the Elliptic dataset was not done.
   It is optional in the brief and recorded as future work.
+
+## ADR-017: Never let a library write into a verified model artifact
+
+- **Finding:**
+  - Re-running System 1b failed: the head-only Laya checkpoint was refused with
+    `checksum mismatch for tokenizer_config.json`.
+  - The file had been modified at the minute Phase 4 *loaded* it. On a scratch copy,
+    `laya.load` (0.4.9) was reproduced rewriting `tokenizer/tokenizer_config.json` in
+    the directory it loads from (`5bed9c3a…` became `891c0cde…`). Phase 4 passed only
+    because verification ran *before* the load mutated the file.
+- **Not done:** re-baselining the manifest to the new hash. That would have defeated
+  the integrity control.
+- **Done:**
+  - The original file was restored from Laya's own `checkpoint_latest/` copy, whose
+    hash equals the manifest's.
+  - `load_agent` now copies the verified files into a fresh temporary directory,
+    verifies the copy, loads from it, and deletes it. The stored artifact is never
+    written to. Prediction was checked to work after the copy is deleted.
+  - A regression test uses a deliberately mutating loader and asserts that the
+    stored checkpoint still verifies after two loads.
+
+## ADR-018: Final ranking = System 1 p_triage + System 2 evidence, fitted on validation
+
+- **Inputs:**
+  - The System 1b fused probability. On validation this is the **out-of-fold**
+    score from `FusionModel.fit_oof`, never an in-sample prediction.
+  - Past-only detector evidence: the finding count and the strongest finding per
+    detector, log-transformed.
+- **Model:** the same interpretable logistic stacker plus Platt/isotonic calibrator,
+  fitted on validation alerts and evaluated once on test alerts. Its calibrated
+  output is the system's final risk score. A leakage test checks that scrambling
+  test labels leaves the fitted ranker unchanged.
+- **Reporting:** the gain over System 1 alone uses a paired bootstrap and is
+  reported whether it is positive or not. Phase 5 found that the detectors add
+  little ranking power on escalated alerts.
+
+## ADR-019: SAR drafting is grounded, pseudonymised, template-first and always a draft
+
+- **Template-first:** the local template drafter is the default, and nothing leaves
+  the machine. The external drafter (owner's choice: Anthropic Claude via the
+  official SDK, `claude-opus-5-5` by default, configurable with `LLM_MODEL`) is
+  opt-in through `LLM_PROVIDER=external` and `LLM_API_KEY`.
+- **Server-side refusal fallbacks:** these are enabled by default on the external
+  call (`fallbacks="default"`, beta `server-side-fallback-2026-07-01`), as Anthropic
+  recommends for this model. Set `use_fallbacks=False` to turn them off.
+- **Pseudonymisation:**
+  - Account ids become `ACCT-nnn` before any rendering. The map stays in memory,
+    and real ids are restored only after validation.
+  - Amounts, dates and payment formats are kept, because the narrative must state
+    them exactly. They are synthetic here, and SECURITY.md flags them for any
+    real-data use.
+- **Injection defence:**
+  - Delimited JSON data, a system instruction to ignore instructions inside the data,
+    and a strict reply schema (extra fields are rejected).
+  - Unknown account tokens force a fallback to the template, and any fallback is
+    recorded on the draft.
+- **Grounding:** every `ACCT-nnn`, `$x,xxx.xx` amount and `YYYY-MM-DD` date must exist
+  in the case facts (the 10,000 USD threshold is the only allowed constant).
+  Mismatches are listed on the draft, never hidden.
+- **Known limit:** grounding verifies entities, not characterisations. The
+  "DRAFT - requires analyst review" stamp (always present, at both ends) and the
+  analyst are the control for that.
+- **Audit:** every generation appends a hash-chained record (who, what, when, case,
+  source, grounded, number of issues) to the git-ignored `data/audit/audit.jsonl`.

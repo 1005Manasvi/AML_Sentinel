@@ -1,0 +1,171 @@
+{
+  "dataset": "HI-Small",
+  "triage_input": "p__fused[lgbm_all+laya[head_only]]",
+  "alerts": {
+    "val": 4000,
+    "test": 4000,
+    "test_positives": 271
+  },
+  "system1_only": {
+    "ranking": {
+      "average_precision": 0.6742025816379005,
+      "roc_auc": 0.8807976575340974,
+      "base_rate": 0.06775
+    },
+    "precision_at_k": {
+      "100": {
+        "n": 4000,
+        "positives": 271,
+        "alerts": 100,
+        "tp": 96,
+        "fp": 4,
+        "fn": 175,
+        "tn": 3725,
+        "precision": 0.96,
+        "recall": 0.35424354243542433,
+        "false_positive_rate": 0.0010726736390453205,
+        "alert_rate": 0.025,
+        "f1": 0.5175202156334231
+      },
+      "250": {
+        "n": 4000,
+        "positives": 271,
+        "alerts": 250,
+        "tp": 163,
+        "fp": 87,
+        "fn": 108,
+        "tn": 3642,
+        "precision": 0.652,
+        "recall": 0.6014760147601476,
+        "false_positive_rate": 0.02333065164923572,
+        "alert_rate": 0.0625,
+        "f1": 0.6257197696737045
+      },
+      "500": {
+        "n": 4000,
+        "positives": 271,
+        "alerts": 500,
+        "tp": 196,
+        "fp": 304,
+        "fn": 75,
+        "tn": 3425,
+        "precision": 0.392,
+        "recall": 0.7232472324723247,
+        "false_positive_rate": 0.08152319656744436,
+        "alert_rate": 0.125,
+        "f1": 0.5084306095979249
+      }
+    },
+    "ece_quantile": 0.02138379698889825,
+    "brier": 0.03587408708405553,
+    "escalation": {
+      "threshold": 0.3373548441982669,
+      "target_share": 0.05,
+      "test_share": 0.06525,
+      "test": {
+        "n": 4000,
+        "positives": 271,
+        "alerts": 261,
+        "tp": 168,
+        "fp": 93,
+        "fn": 103,
+        "tn": 3636,
+        "precision": 0.6436781609195402,
+        "recall": 0.6199261992619927,
+        "false_positive_rate": 0.0249396621078037,
+        "alert_rate": 0.06525,
+        "f1": 0.631578947368421
+      }
+    }
+  },
+  "final": {
+    "ranking": {
+      "average_precision": 0.6512876695859329,
+      "roc_auc": 0.8852912101124231,
+      "base_rate": 0.06775
+    },
+    "precision_at_k": {
+      "100": {
+        "n": 4000,
+        "positives": 271,
+        "alerts": 100,
+        "tp": 93,
+        "fp": 7,
+        "fn": 178,
+        "tn": 3722,
+        "precision": 0.93,
+        "recall": 0.34317343173431736,
+        "false_positive_rate": 0.0018771788683293108,
+        "alert_rate": 0.025,
+        "f1": 0.5013477088948787
+      },
+      "250": {
+        "n": 4000,
+        "positives": 271,
+        "alerts": 250,
+        "tp": 166,
+        "fp": 84,
+        "fn": 105,
+        "tn": 3645,
+        "precision": 0.664,
+        "recall": 0.6125461254612546,
+        "false_positive_rate": 0.02252614641995173,
+        "alert_rate": 0.0625,
+        "f1": 0.6372360844529751
+      },
+      "500": {
+        "n": 4000,
+        "positives": 271,
+        "alerts": 500,
+        "tp": 200,
+        "fp": 300,
+        "fn": 71,
+        "tn": 3429,
+        "precision": 0.4,
+        "recall": 0.7380073800738007,
+        "false_positive_rate": 0.08045052292839903,
+        "alert_rate": 0.125,
+        "f1": 0.5188067444876783
+      }
+    },
+    "ece_quantile": 0.02715994302166649,
+    "brier": 0.03660032625924568,
+    "escalation": {
+      "threshold": 0.3,
+      "target_share": 0.05,
+      "test_share": 0.07725,
+      "test": {
+        "n": 4000,
+        "positives": 271,
+        "alerts": 309,
+        "tp": 179,
+        "fp": 130,
+        "fn": 92,
+        "tn": 3599,
+        "precision": 0.5792880258899676,
+        "recall": 0.6605166051660517,
+        "false_positive_rate": 0.03486189326897292,
+        "alert_rate": 0.07725,
+        "f1": 0.6172413793103448
+      }
+    },
+    "coefficients": {
+      "logit_p_triage": 2.047419086875071,
+      "ev_n_findings": 0.7226100382662033,
+      "ev_max_scatter_gather": 0.10376891817469894,
+      "ev_max_fan_out": -0.40523458139276475,
+      "ev_max_gather_scatter": 0.11692534582759206,
+      "ev_max_circular": -0.06752678188477315,
+      "ev_max_fan_in": -0.8091855508865856,
+      "ev_max_structuring": 0.2968021209474761
+    },
+    "calibrator": "isotonic"
+  },
+  "graph_evidence_gain": {
+    "diff": -0.022914912051967606,
+    "ci_low": -0.049847347548438635,
+    "ci_high": 0.0018585759602510242,
+    "p_not_better": 0.962
+  },
+  "model_sha256": "19cce8d247ec8f17447ce0313dc5dcfdda3a87e2bdf6286af22e9f66b0d79b60"
+}

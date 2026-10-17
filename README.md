@@ -228,7 +228,44 @@ pair in the test period: 375,225 pairs, of which
 
 To regenerate: `make detect gnn`. Reports: [reports/system2/](reports/system2/).
 
-Full results arrive in Phases 6–8.
+### Final ranking and SAR drafting (Phase 6)
+
+**Final calibrated ranking.** A validation-fitted logistic stacker combines the
+System 1 fused probability (out-of-fold on validation) with the System 2 detector
+evidence. It is measured on the same 4,000 test alerts
+(271 laundering).
+
+| Score | PR-AUC | Precision@100 | ECE | Escalate 5%: precision | Recall |
+|---|---:|---:|---:|---:|---:|
+| System 1 only (`fused[lgbm_all+laya[head_only]]`) | 0.674 | 96.0% | 0.0214 | 64.4% | 62.0% |
+| Final (System 1 + System 2 evidence) | 0.651 | 93.0% | 0.0272 | 57.9% | 66.1% |
+
+- **Adding graph evidence did not help ranking:** PR-AUC -0.023, 95% CI
+  [-0.050, +0.002]. Not significant, and pointing the wrong
+  way.
+- The coefficients show why (`logit_p_triage` +2.05, `ev_n_findings` +0.72, `ev_max_scatter_gather` +0.10, `ev_max_fan_out` -0.41, `ev_max_gather_scatter` +0.12, `ev_max_circular` -0.07, `ev_max_fan_in` -0.81, `ev_max_structuring` +0.30): fan-in and fan-out get *negative* weight,
+  because benign hubs dominate them (Phase 5). The final score trades a little
+  precision for a little recall when escalating 5% of alerts.
+- The detectors' value is the evidence they put in a case and a SAR, not ranking
+  power.
+- **Known issue:** the isotonic calibrator's top bin is 1.0, so the highest-risk
+  alerts display a risk of 1.000, which overstates certainty. This is scheduled for
+  calibration hardening in Phase 8.
+
+**SAR drafting.** `make sar` drafts SARs for the top test alerts.
+- **Local template by default:** nothing leaves the machine.
+- **Optional Claude drafter** (`LLM_PROVIDER=external`): it receives only
+  pseudonymised facts (`ACCT-nnn` tokens), as JSON delimited from the
+  instructions. Its reply must match a strict schema.
+- **Grounding:** every account, amount and date in a draft is checked against the
+  case's own data, and mismatches are listed, never hidden.
+- **Review stamp:** every draft is stamped *DRAFT - requires analyst review*, and
+  every generation is written to a hash-chained audit log.
+- On HI-Small, all 5 template drafts for the top alerts passed grounding.
+- The drafts are not committed, because they quote rows of the IBM dataset; run
+  `make rank sar` to generate them locally.
+
+Full results arrive in Phases 7–8.
 
 ## Limitations
 
