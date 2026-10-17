@@ -35,6 +35,7 @@ import pandas as pd
 from aml_sentinel.data.schema import Col
 from aml_sentinel.evaluation.metrics import binary_metrics
 from aml_sentinel.exceptions import ConfigurationError, DataValidationError
+from aml_sentinel.features.temporal import trailing_aggregates
 
 DEFAULT_AMOUNT_USD = 10_000.0  # mirrors the familiar US cash-reporting threshold
 DEFAULT_WINDOW = timedelta(hours=24)
@@ -146,25 +147,7 @@ def trailing_counts(
     Raises:
         DataValidationError: If ``key`` has missing values.
     """
-    n = len(frame)
-    if n == 0:
-        return np.zeros(0, dtype=np.int64)
-    codes, _ = pd.factorize(frame[key], use_na_sentinel=True)
-    if (codes < 0).any():
-        raise DataValidationError(f"{key} has missing values")
-    minutes = frame[Col.TIMESTAMP].to_numpy().astype("datetime64[m]").astype(np.int64)
-    minutes = minutes - np.min(minutes)
-    win = max(1, int(window.total_seconds() // 60))
-    stride = int(np.max(minutes)) + win + 1  # keeps different keys' ranges disjoint
-
-    order = np.lexsort((np.arange(n), minutes, codes))
-    sorted_keys = codes[order].astype(np.int64) * stride + minutes[order]
-    first_in_window = np.searchsorted(sorted_keys, sorted_keys - win, side="right")
-    counts_sorted = np.arange(n, dtype=np.int64) - first_in_window + 1
-
-    counts = np.empty(n, dtype=np.int64)
-    counts[order] = counts_sorted
-    return counts
+    return trailing_aggregates(frame, key=key, window=window).counts
 
 
 def apply_rules(
