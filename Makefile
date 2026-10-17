@@ -9,7 +9,7 @@ else
 endif
 PY := $(BIN)/python
 
-.PHONY: setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text demo reproduce clean
+.PHONY: setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text detect gnn-setup gnn demo reproduce clean
 
 setup:  ## Create venv and install pinned, hash-verified dependencies
 	python -m venv .venv
@@ -68,6 +68,16 @@ finetune-laya:  ## Head-only Laya fine-tune on the local GPU (~1.5 h on a 4 GB R
 triage-text:  ## System 1b: Laya variants (+Jev only if JEV_ENABLED) + fusion
 	$(PY) -m aml_sentinel.cli triage-text --dataset HI-Small
 
+detect:  ## System 2: NetworkX detectors on the alert-queue samples (strict + next-day)
+	$(PY) -m aml_sentinel.cli detect-patterns --dataset Sample
+	$(PY) -m aml_sentinel.cli detect-patterns --dataset HI-Small
+
+gnn-setup:  ## Optional GNN experiment stack (after laya-setup)
+	$(PY) -m pip install --require-hashes -r requirements/gnn.txt
+
+gnn:  ## System 2 experiment: GraphSAGE pair classifier vs LightGBM and detectors
+	$(PY) -m aml_sentinel.cli gnn-experiment --dataset HI-Small
+
 notebook:
 	$(PY) -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_eda.ipynb
 
@@ -87,6 +97,7 @@ reproduce:  ## Grows phase by phase until it regenerates every README figure/tab
 	$(MAKE) data
 	$(MAKE) baseline
 	$(MAKE) train
+	$(MAKE) detect
 	$(MAKE) notebook
 
 clean:

@@ -36,6 +36,8 @@ from aml_sentinel.models.laya_finetune import build_laya_dataset, finetune_head_
 from aml_sentinel.models.system1a_report import system1a_command
 from aml_sentinel.models.system1b_report import system1b_command
 from aml_sentinel.rules.baseline import baseline_command
+from aml_sentinel.system2.gnn_report import gnn_command
+from aml_sentinel.system2.report import detect_command
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +147,8 @@ def _build_parser() -> argparse.ArgumentParser:
         ("build-laya-data", "System 1b: write the Laya fine-tuning JSONL"),
         ("finetune-laya", "System 1b: head-only Laya fine-tune on the local GPU"),
         ("triage-text", "System 1b: Laya (+Jev if enabled) on the alert queue, then fusion"),
+        ("detect-patterns", "System 2: NetworkX detectors on alert cases"),
+        ("gnn-experiment", "System 2 experiment: GraphSAGE pair classifier vs LightGBM"),
     ):
         cmd = sub.add_parser(name, help=help_text)
         cmd.add_argument(
@@ -183,6 +187,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             finetune_head_only(settings, args.dataset)
         elif args.command == "triage-text":
             system1b_command(settings, args.dataset)
+        elif args.command == "detect-patterns":
+            detect_command(settings, args.dataset)
+        elif args.command == "gnn-experiment":
+            gnn_command(settings, args.dataset)
     except AmlSentinelError as exc:
         # Our exceptions carry safe messages; anything else is a bug and should
         # surface with a traceback.
