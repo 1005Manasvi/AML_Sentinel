@@ -9,7 +9,7 @@ else
 endif
 PY := $(BIN)/python
 
-.PHONY: setup lock lint format typecheck test security check sample data notebook run train demo reproduce clean
+.PHONY: setup lock lint format typecheck test security check sample data baseline notebook run train demo reproduce clean
 
 setup:  ## Create venv and install pinned, hash-verified dependencies
 	python -m venv .venv
@@ -50,6 +50,11 @@ data:  ## Validate raw files and build parquet caches (needs data/raw, see data/
 	$(PY) -m aml_sentinel.cli prepare-data --dataset HI-Small
 	$(PY) -m aml_sentinel.cli prepare-data --dataset LI-Small
 
+baseline:  ## Rule-engine baseline on every prepared dataset -> reports/baseline/
+	$(PY) -m aml_sentinel.cli baseline --dataset Sample
+	$(PY) -m aml_sentinel.cli baseline --dataset HI-Small
+	$(PY) -m aml_sentinel.cli baseline --dataset LI-Small
+
 notebook:
 	$(PY) -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_eda.ipynb
 
@@ -65,6 +70,7 @@ demo:
 reproduce:  ## Grows phase by phase until it regenerates every README figure/table
 	$(MAKE) sample
 	$(MAKE) data
+	$(MAKE) baseline
 	$(MAKE) notebook
 
 clean:

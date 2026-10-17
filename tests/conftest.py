@@ -179,6 +179,7 @@ def _isolate_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "JEV_API_KEY",
         "DATA_DIR",
         "TRAIN_END",
+        "REPORTS_DIR",
         "VAL_END",
         "TEST_END",
         "ENVIRONMENT",
