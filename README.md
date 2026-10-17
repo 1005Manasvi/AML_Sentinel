@@ -117,7 +117,59 @@ To regenerate: `make train`. Reports and figures are in [reports/system1a/](repo
   reported as is, not tuned away on test.
 - These are results on synthetic data and do not show real-world performance.
 
-Full results arrive in Phases 4–8.
+### System 1b: Laya triage and fusion (Phase 4)
+
+These are measured on HI-Small. Every model scores the **same 4,000 test alerts**,
+sampled from the System 1a queue (the top 1% by LightGBM). The sample holds
+271 laundering transactions, a 6.8% base rate
+**within the queue**, so these numbers are not comparable with the full-split results
+above. Laya is run zero-shot and with **head-only** fine-tuning (encoder frozen,
+4 GB GPU). The full fine-tune runs on Kaggle (`scripts/kaggle_laya_full_finetune.py`)
+and is not yet measured. Jev was not run (disabled, no key).
+
+| Model | PR-AUC | ROC-AUC | Precision@100 | ECE | Typology accuracy / macro-F1 | ms per alert |
+|---|---:|---:|---:|---:|---:|---:|
+| lgbm_all | 0.649 | 0.879 | 95.0% | 0.023 | n/a / n/a | n/a |
+| lgbm_no_shortcuts | 0.591 | 0.846 | 94.0% | 0.014 | n/a / n/a | n/a |
+| laya[zero_shot] | 0.091 | 0.614 | 7.0% | 0.458 | 94.2% / 0.24 | 442 |
+| laya[head_only] | 0.096 | 0.535 | 15.0% | 0.409 | 66.1% / 0.21 | 296 |
+| fused[lgbm_all+laya[head_only]] | 0.674 | 0.881 | 96.0% | 0.021 | n/a | n/a |
+| fused[lgbm_no_shortcuts+laya[head_only]] | 0.613 | 0.857 | 91.0% | 0.012 | n/a | n/a |
+
+Does adding Laya to fusion help? This is a paired bootstrap over the test alerts. It
+resamples rows only, so the intervals are optimistic.
+
+| Fused model vs. the same fusion without Laya | PR-AUC gain | 95% CI |
+|---|---:|---|
+| fused[lgbm_all+laya[zero_shot]] vs fused[lgbm_all] | +0.025 | [+0.015, +0.036] |
+| fused[lgbm_all+laya[head_only]] vs fused[lgbm_all] | +0.029 | [+0.021, +0.037] |
+| fused[lgbm_no_shortcuts+laya[zero_shot]] vs fused[lgbm_no_shortcuts] | +0.002 | [-0.011, +0.015] |
+| fused[lgbm_no_shortcuts+laya[head_only]] vs fused[lgbm_no_shortcuts] | +0.022 | [+0.010, +0.035] |
+
+To regenerate: `make laya-data finetune-laya triage-text` (GPU; about 2.5 h on an
+RTX 3050 Laptop). Full report: [reports/system1b/](reports/system1b/).
+
+**What did not work (honest reading):**
+
+- **Laya alone is close to random inside the alert queue.** Its PR-AUC is
+  0.09–0.10 against LightGBM's 0.65, at a 6.8% base rate. Its ROC-AUC is 0.61
+  zero-shot and 0.54 head-only, against LightGBM's 0.88. Laya's own README
+  warns that the base model is "near chance" zero-shot, and a frozen encoder is not
+  enough to fix that.
+- **Head-only fine-tuning did not measurably improve Laya alone.** The PR-AUC gain is
+  +0.005, with a 95% CI that includes 0. Its mean risk score is the same for
+  laundering and benign alerts (3.55 vs 3.54), so the head learned the prior, not the
+  signal.
+- **Zero-shot "94% typology accuracy" is a majority-class artifact.** It labels every
+  alert benign (macro-F1 0.24). Head-only labels many benign alerts as layering
+  (macro-F1 0.21). There are no structuring cases in IBM test data (ADR-012).
+- **Laya's raw probabilities are badly calibrated** (ECE of about 0.41–0.46). Its
+  README says it is over-confident as shipped.
+- **The only gain is in fusion, and it is small:** +0.02 to +0.03 PR-AUC when Laya's
+  outputs are stacked with LightGBM. That costs about 300–440 ms of GPU time per
+  alert. With the no-shortcut model, zero-shot Laya adds nothing significant.
+
+Full results arrive in Phases 5–8.
 
 ## Limitations
 

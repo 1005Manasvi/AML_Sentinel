@@ -155,3 +155,81 @@ consequences.
   calibrated on test. Phase 8 will evaluate recalibration on a rolling window as a
   mitigation. Fixing this with test data would be leakage, so the result is
   reported as measured.
+
+## ADR-012: Laya label set, typology mapping and synthetic structuring
+
+- **Labels (5):** structuring, circular, mule_network, layering, benign. Laya's
+  README warns that it degrades with many labels, so the set stays small.
+- **Mapping (owner-approved):**
+  - CYCLE → circular.
+  - FAN-IN and FAN-OUT → mule_network.
+  - SCATTER-GATHER, GATHER-SCATTER, STACK, BIPARTITE and RANDOM → layering.
+  - Label 0 → benign.
+  - Laundering rows with no documented typology have no typology target. They still
+    count as positives for the risk and escalation questions.
+- **Structuring:** IBM AMLworld has none. The project's generator adds a STRUCTURING
+  pattern (6–15 cash deposits at 80–99.5% of 10k USD into one account) and a benign
+  look-alike: a car dealer receiving a few legitimate cash payments of 5–9.9k. On
+  IBM test data the structuring class is therefore empty, and this is reported.
+- **Generator fix:** laundering payment formats are now mixed (ACH 45%, Wire 20%,
+  Cheque 15%, Card 10%, Cash 10%). Before, they were all ACH, which reproduced IBM's
+  shortcut in the bundled sample (ADR-010).
+
+## ADR-013: Laya in System 1, Jev benchmark-only, and how fine-tuning is done
+
+- **Why Laya is in the pipeline:**
+  - It is open-source (Apache-2.0) and runs locally.
+  - It answers typed questions in one forward pass, so alert summaries never leave
+    the machine.
+  - Weights are safetensors and are SHA-256-verified before loading (both by us and
+    by Laya's `expected_sha256`).
+  - Its API was taken from the installed `laya` 0.4.9 source and the official README,
+    not guessed.
+- **Why Jev is benchmark-only:**
+  - It is a closed, hosted API (TypeSafe; `POST https://api.typesafe.ai/v1/systemone`,
+    per docs.typesafe.ai).
+  - Every call sends data to a third party, and results may change between versions
+    and cannot be reproduced offline.
+  - The adapter is disabled unless `JEV_ENABLED=true` and a key is set. It refuses
+    any batch not explicitly marked synthetic; `AlertBatch.is_synthetic` defaults to
+    False. It sends only numeric summaries, with no identifiers. Nothing needs Jev.
+- **Fine-tuning on this hardware:**
+  - A full fine-tune of the 421M-parameter encoder does not fit the 4 GB RTX 3050
+    (fp32 weights plus AdamW state is about 5 GB or more).
+  - Owner's choice: run **head-only** fine-tuning locally
+    (`TrainConfig(freeze_encoder=True)`, 3 epochs) and do the **full** fine-tune on
+    Kaggle with `scripts/kaggle_laya_full_finetune.py`. Every result says which
+    variant produced it.
+  - PyPI's Windows torch wheel is CPU-only, so the CUDA build (2.14.1+cu126, which
+    matches driver 566.07) is installed from PyTorch's index.
+- **Where Laya runs:**
+  - About 120 ms per alert on this GPU, so Laya cannot score every transaction.
+    System 1a's top 1% forms the alert queue.
+  - Laya scores a fixed seeded sample of 4,000 alerts per split. Every text model
+    sees the same sample.
+  - Fusion is fitted on validation alerts. The top 5% of alerts by `p_triage` go to
+    System 2, with the threshold set on validation.
+  - This interprets the brief's "escalate roughly 1–5%" as a share of **alerts**.
+
+## ADR-014: Measured Laya outcome and what follows from it
+
+- **Result (HI-Small, 4,000 test alerts from the top-1% queue):**
+  - Laya alone is close to random: PR-AUC 0.09–0.10 against LightGBM's 0.65, and
+    ROC-AUC 0.61 zero-shot and 0.54 head-only, against LightGBM's 0.88.
+  - Head-only fine-tuning gives no significant improvement (bootstrap CI includes 0).
+  - Stacking Laya with LightGBM adds +0.02 to +0.03 PR-AUC. That gain is significant
+    on row resampling, but small, and it costs about 300–440 ms of GPU time per alert.
+- **Interpretation:**
+  - With the encoder frozen, Laya's representation of these numeric summaries is
+    fixed, and the head cannot extract much signal from it.
+  - The summaries also restate features LightGBM already uses, minus the shortcuts,
+    so there is little new information for Laya to add.
+  - A full fine-tune (Kaggle script) is the fair test of Laya's ceiling. It is
+    prepared but not yet measured.
+- **Decision:** Laya stays in the pipeline as an optional, ablatable `Triage` model.
+  The default System 1 score is fusion with Laya when a verified checkpoint exists,
+  and LightGBM alone otherwise. The README and model card state plainly that Laya
+  underperforms LightGBM on its own.
+- **Latency note:** the 296–442 ms per alert measured in the full run is higher than
+  the 121 ms smoke-test figure. That smoke test used batches of 32 with only four
+  distinct states. The full-run numbers are the ones reported.

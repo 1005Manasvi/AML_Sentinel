@@ -50,10 +50,23 @@ separate data-protection impact assessment, legal review and model validation.
 | Malicious model files (pickle RCE) | Native/safetensors formats and checksum before load | Helper done, applied from Phase 3 |
 | Data poisoning | *planned* | Phase 3+ |
 | Model evasion (for example, splitting amounts under thresholds) | *planned*: graph features and System 2 detectors | Phase 3/5 |
-| Prompt injection via transaction fields | *planned*: delimiting, instructions to ignore data-borne instructions, output schema and grounding validation | Phase 4/6 |
-| Data exfiltration to external LLMs | *planned*: pseudonymisation, a documented outbound field list, template fallback | Phase 6 |
-| Jev used with real data | *planned*: the adapter refuses inputs not flagged as synthetic | Phase 4 |
+| Prompt injection via transaction fields | Alert summaries are rendered only from numeric features through fixed templates, with no free text or IDs. A character allowlist, a length cap and an instruction to treat the state as data apply on top. Every model answer is schema-validated (`parse_answers`). The SAR step follows in Phase 6 | Done for System 1; SAR in Phase 6 |
+| Data exfiltration to external LLMs | Summaries carry no identifiers. The Jev outbound fields are documented below. SAR pseudonymisation follows in Phase 6 | Partly done |
+| Jev used with real data | The adapter is disabled by default and needs `JEV_ENABLED` plus a key. It raises `SyntheticDataRequiredError` unless the batch is explicitly `is_synthetic=True`, which defaults to False. A test proves nothing is sent | Done |
+| Tampered model weights | Laya checkpoints are verified against a SHA-256 manifest and also through Laya's `expected_sha256` before parsing. Weights are safetensors only | Done |
 | Insider misuse | *planned*: roles, an append-only audit log, no sensitive values in logs | Phase 7 |
+
+## What leaves the machine
+
+| Component | Destination | Data sent | When |
+|---|---|---|---|
+| Laya | nothing (local) | n/a | always local |
+| Laya base download | huggingface.co | none (download only), pinned commit | once |
+| Jev (benchmark) | api.typesafe.ai over HTTPS | per alert: a numeric summary (amounts, counts, ratios, ages; **no** account IDs, bank codes or names), the fixed questions, the model name, and the API key in the `Authorization` header | only if `JEV_ENABLED=true`, only for synthetic data |
+
+TypeSafe states that Jev is not trained on customer requests
+(docs.typesafe.ai/models). The data still leaves the machine, so real customer data
+must **never** be sent.
 
 ## Logging policy
 
