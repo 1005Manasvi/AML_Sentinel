@@ -78,3 +78,34 @@ consequences.
   exercised on known ground truth. Sample metrics are not evidence of model quality,
   because the sample's prevalence and pattern complexity differ widely from IBM's.
   Documentation must keep the two clearly separate.
+
+## ADR-008: Synthetic "high-risk jurisdiction" list
+
+- **Context:** The brief requires a jurisdiction rule, but IBM AMLworld has no
+  country field. It has only bank codes and currencies.
+- **Decision (owner's choice):** A seeded random 5% of the bank codes seen in the
+  training split is declared "high-risk". Labels and volumes are ignored, because
+  any smarter selection would be invented.
+- **Consequences:** The rule keeps the familiar three-rule baseline shape, but it
+  is **artificial by construction**. Measured test precision is about the base
+  rate (HI-Small: 0.17% vs 0.11%). Every report labels it synthetic.
+
+## ADR-009: Rule-baseline methodology
+
+- **Velocity is entity-level.** The velocity threshold is a percentile of
+  *sender-day* payment counts. The first implementation used a percentile over
+  transaction rows. Hub accounts that send tens of thousands of payments a day
+  dominated it, giving a threshold of 25,705/day, so the rule never fired.
+  The sender-day percentile gives 24/day on HI-Small. The rule still counts only
+  the current and earlier rows, which a brute-force property test checks.
+- **There are two variants.** *Static* uses textbook thresholds: 10k USD, plus a
+  train p99.9 sender-day velocity. *Tuned* is a 560-config grid search for train
+  F1. All fitting uses only training rows.
+- **The baseline to beat is chosen on validation F1.** Train-only tuning did not
+  generalise on HI-Small: the train-best rule (velocity ≥ 100) caught 0
+  documented-pattern transactions on test. Selecting on test would leak, so
+  validation decides. Validation chose static for HI-Small and tuned for LI-Small;
+  in both cases this is also the test winner. A test checks that test labels
+  cannot change the choice.
+- **Metrics are at transaction level** (one alert per transaction). Alert volume is
+  reported per day, because analyst workload is what false positives cost.
