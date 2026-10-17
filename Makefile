@@ -9,7 +9,7 @@ else
 endif
 PY := $(BIN)/python
 
-.PHONY: setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text detect gnn-setup gnn demo reproduce clean
+.PHONY: setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text detect gnn-setup gnn rank sar llm-setup demo reproduce clean
 
 setup:  ## Create venv and install pinned, hash-verified dependencies
 	python -m venv .venv
@@ -78,6 +78,15 @@ gnn-setup:  ## Optional GNN experiment stack (after laya-setup)
 gnn:  ## System 2 experiment: GraphSAGE pair classifier vs LightGBM and detectors
 	$(PY) -m aml_sentinel.cli gnn-experiment --dataset HI-Small
 
+rank:  ## Final calibrated ranking (System 1 p_triage + System 2 evidence)
+	$(PY) -m aml_sentinel.cli rank --dataset HI-Small
+
+sar:  ## Draft review-stamped, grounding-checked SARs for the top test alerts (template by default)
+	$(PY) -m aml_sentinel.cli draft-sar --dataset HI-Small
+
+llm-setup:  ## Optional external SAR drafter (Anthropic SDK); only pseudonymised facts are sent
+	$(PY) -m pip install --require-hashes -r requirements/llm.txt
+
 notebook:
 	$(PY) -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_eda.ipynb
 
@@ -98,6 +107,8 @@ reproduce:  ## Grows phase by phase until it regenerates every README figure/tab
 	$(MAKE) baseline
 	$(MAKE) train
 	$(MAKE) detect
+	$(MAKE) rank
+	$(MAKE) sar
 	$(MAKE) notebook
 
 clean:

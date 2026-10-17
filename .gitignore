@@ -3,10 +3,14 @@ data/raw/*
 !data/raw/.gitkeep
 /data/processed/
 /data/interim/
+# Audit log stays local: it records who did what (append-only, hash-chained).
+/data/audit/
 # Root-anchored: an unanchored "models/" would also hide src/aml_sentinel/models.
 /models/
 /artifacts/
 /reports/generated/
+# SAR drafts quote raw dataset rows; generate locally with `make rank sar`.
+/reports/sar/
 *.parquet
 *.csv
 # The small, self-generated synthetic sample IS committed (demo without Kaggle).

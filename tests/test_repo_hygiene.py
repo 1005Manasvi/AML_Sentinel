@@ -53,6 +53,7 @@ def test_no_source_or_test_file_is_ignored() -> None:
         "data/processed/HI-Small.parquet",
         ".env",
         "weights.pkl",
+        "data/audit/audit.jsonl",
     ],
 )
 def test_artifacts_and_secrets_are_ignored(path: str) -> None:
