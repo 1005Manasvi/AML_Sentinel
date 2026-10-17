@@ -32,14 +32,15 @@ class AlertBatch:
         transactions: Matching processed transaction rows, if the model needs raw
             fields (e.g. the rule engine needs bank codes).
         summaries: Plain-text alert summaries for text models (Phase 4).
-        is_synthetic: True when every row comes from synthetic data. Hosted
-            third-party models must refuse batches where this is false.
+        is_synthetic: True only when every row is known to be synthetic. It defaults
+            to False, so data must be explicitly marked before any hosted third-party
+            model (Jev) will accept it.
     """
 
     features: pd.DataFrame
     transactions: pd.DataFrame | None = None
     summaries: tuple[str, ...] | None = None
-    is_synthetic: bool = True
+    is_synthetic: bool = False
 
     def __len__(self) -> int:
         """Number of transactions in the batch."""
@@ -56,12 +57,15 @@ class TriageOutput:
         typology: Predicted typology per row (typed-question models only).
         risk: Risk on a 1-5 scale (typed-question models only).
         escalate: Escalate-to-System-2 decision (typed-question models only).
+        extras: Additional per-row numeric outputs, e.g. per-label probabilities, which
+            the fusion layer may use as inputs.
     """
 
     scores: FloatArray
     typology: tuple[str, ...] | None = None
     risk: npt.NDArray[np.int64] | None = None
     escalate: npt.NDArray[np.bool_] | None = None
+    extras: dict[str, FloatArray] | None = None
 
 
 @runtime_checkable
@@ -115,4 +119,5 @@ class CalibratedTriage:
             typology=out.typology,
             risk=out.risk,
             escalate=out.escalate,
+            extras=out.extras,
         )

@@ -29,7 +29,11 @@ TYPOLOGY: Final = "typology"
 
 
 class Typology(StrEnum):
-    """Laundering typologies used by the IBM AMLworld simulator."""
+    """Laundering typologies: IBM AMLworld's eight, plus our synthetic STRUCTURING.
+
+    ``STRUCTURING`` never occurs in IBM data. Only this project's generator produces
+    it, so Laya has examples of the brief's ``structuring`` label (ADR-012).
+    """
 
     FAN_IN = "FAN-IN"
     FAN_OUT = "FAN-OUT"
@@ -39,6 +43,7 @@ class Typology(StrEnum):
     BIPARTITE = "BIPARTITE"
     STACK = "STACK"
     RANDOM = "RANDOM"
+    STRUCTURING = "STRUCTURING"
 
 
 _BEGIN = re.compile(r"^BEGIN LAUNDERING ATTEMPT - ([A-Z-]+)\s*(?::.*)?$")

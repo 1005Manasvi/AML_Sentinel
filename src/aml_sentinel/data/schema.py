@@ -115,6 +115,14 @@ class DatasetName(StrEnum):
     SAMPLE = "Sample"
 
 
+# Every supported dataset is synthetic (IBM AMLworld is simulated; Sample is ours).
+# A real-data source must be added WITHOUT joining this set, which keeps it away from
+# hosted third-party models such as Jev.
+SYNTHETIC_DATASETS: Final[frozenset[DatasetName]] = frozenset(
+    {DatasetName.HI_SMALL, DatasetName.LI_SMALL, DatasetName.SAMPLE}
+)
+
+
 def account_node_id(bank: str, account: str) -> str:
     """Build the graph node ID for an account.
 

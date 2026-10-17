@@ -144,3 +144,21 @@ def test_summaries() -> None:
     assert operating_points(Y, S, [0.25])["0.25"]["alerts"] == 2
     curve = pr_curve_points(Y, S, max_points=3)
     assert len(curve["precision"]) == len(curve["recall"]) <= 3
+
+
+def test_bootstrap_ap_difference() -> None:
+    from aml_sentinel.evaluation.ranking import bootstrap_ap_difference
+
+    rng = np.random.default_rng(0)
+    y = (rng.random(600) < 0.2).astype(int)
+    good = y + rng.normal(0, 0.5, 600)
+    noise = rng.normal(0, 1, 600)
+    better = bootstrap_ap_difference(y, good, noise, n_boot=200)
+    assert better["diff"] > 0
+    assert better["ci_low"] > 0
+    assert better["p_not_better"] == 0.0
+    same = bootstrap_ap_difference(y, good, good, n_boot=50)
+    assert same["diff"] == 0
+    assert same["p_not_better"] == 1.0
+    with pytest.raises(DataValidationError):
+        bootstrap_ap_difference([0, 0], [0.1, 0.2], [0.3, 0.4])

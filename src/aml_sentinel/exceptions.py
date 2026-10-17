@@ -36,3 +36,15 @@ class LeakageError(AmlSentinelError):
 
 class IntegrityError(AmlSentinelError):
     """A file failed checksum verification."""
+
+
+class SyntheticDataRequiredError(AmlSentinelError):
+    """A component restricted to synthetic data received data not marked synthetic."""
+
+
+class ExternalServiceError(AmlSentinelError):
+    """A hosted third-party service failed or returned an unusable response."""
+
+
+class ModelOutputError(AmlSentinelError):
+    """A model returned output that fails structural validation."""

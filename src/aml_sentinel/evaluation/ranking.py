@@ -186,3 +186,50 @@ def pr_curve_points(
     # the first point whose recall has dropped to (or below) it.
     idx = np.unique(np.clip(np.searchsorted(-recall, -grid, side="left"), 0, recall.size - 1))
     return {"precision": precision[idx].tolist(), "recall": recall[idx].tolist()}
+
+
+def bootstrap_ap_difference(
+    y: npt.ArrayLike,
+    scores_a: npt.ArrayLike,
+    scores_b: npt.ArrayLike,
+    *,
+    n_boot: int = 2000,
+    seed: int = 42,
+) -> dict[str, float]:
+    """Paired bootstrap of ``AP(a) - AP(b)`` over the same rows.
+
+    Resamples rows only. It does not include the variance from fitting either model,
+    so treat the interval as a lower bound on the true uncertainty.
+
+    Args:
+        y: Binary labels.
+        scores_a: Scores of model A.
+        scores_b: Scores of model B (same rows).
+        n_boot: Bootstrap replicates.
+        seed: RNG seed.
+
+    Returns:
+        ``diff``, ``ci_low``, ``ci_high`` (95%) and ``p_not_better`` (share of
+        replicates with ``diff <= 0``).
+
+    Raises:
+        DataValidationError: On length mismatch or a single class.
+    """
+    t = _labels(y)
+    a = np.asarray(scores_a, dtype=np.float64).ravel()
+    b = np.asarray(scores_b, dtype=np.float64).ravel()
+    if not t.shape == a.shape == b.shape or not 0 < t.sum() < t.size:
+        raise DataValidationError("bootstrap needs aligned inputs with both classes")
+    rng = np.random.default_rng(seed)
+    diffs = []
+    for _ in range(n_boot):
+        i = rng.integers(0, t.size, t.size)
+        if 0 < t[i].sum() < t.size:
+            diffs.append(average_precision_score(t[i], a[i]) - average_precision_score(t[i], b[i]))
+    d = np.asarray(diffs)
+    return {
+        "diff": float(average_precision_score(t, a) - average_precision_score(t, b)),
+        "ci_low": float(np.percentile(d, 2.5)),
+        "ci_high": float(np.percentile(d, 97.5)),
+        "p_not_better": float(np.mean(d <= 0)),
+    }
