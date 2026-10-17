@@ -9,7 +9,7 @@ else
 endif
 PY := $(BIN)/python
 
-.PHONY: setup lock lint format typecheck test security check sample data baseline notebook run train demo reproduce clean
+.PHONY: setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text demo reproduce clean
 
 setup:  ## Create venv and install pinned, hash-verified dependencies
 	python -m venv .venv
@@ -54,6 +54,19 @@ baseline:  ## Rule-engine baseline on every prepared dataset -> reports/baseline
 	$(PY) -m aml_sentinel.cli baseline --dataset Sample
 	$(PY) -m aml_sentinel.cli baseline --dataset HI-Small
 	$(PY) -m aml_sentinel.cli baseline --dataset LI-Small
+
+laya-setup:  ## Optional text-model stack; then CUDA torch for NVIDIA GPUs (ADR-013)
+	$(PY) -m pip install --require-hashes -r requirements/laya.txt
+	@echo "GPU: $(PY) -m pip install --force-reinstall --no-deps torch==2.14.1+cu126 --index-url https://download.pytorch.org/whl/cu126"
+
+laya-data:  ## Laya fine-tuning JSONL from the HI-Small train split (+ generator structuring)
+	$(PY) -m aml_sentinel.cli build-laya-data --dataset HI-Small
+
+finetune-laya:  ## Head-only Laya fine-tune on the local GPU (~1.5 h on a 4 GB RTX 3050)
+	$(PY) -m aml_sentinel.cli finetune-laya --dataset HI-Small
+
+triage-text:  ## System 1b: Laya variants (+Jev only if JEV_ENABLED) + fusion
+	$(PY) -m aml_sentinel.cli triage-text --dataset HI-Small
 
 notebook:
 	$(PY) -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_eda.ipynb

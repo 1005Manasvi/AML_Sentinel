@@ -32,7 +32,9 @@ from aml_sentinel.data.synthetic import SyntheticConfig, generate, write_dataset
 from aml_sentinel.exceptions import AmlSentinelError
 from aml_sentinel.integrity import sha256_file
 from aml_sentinel.logging_utils import configure_logging
+from aml_sentinel.models.laya_finetune import build_laya_dataset, finetune_head_only
 from aml_sentinel.models.system1a_report import system1a_command
+from aml_sentinel.models.system1b_report import system1b_command
 from aml_sentinel.rules.baseline import baseline_command
 
 logger = logging.getLogger(__name__)
@@ -139,6 +141,18 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=list(DatasetName),
         default=DatasetName.HI_SMALL,
     )
+    for name, help_text in (
+        ("build-laya-data", "System 1b: write the Laya fine-tuning JSONL"),
+        ("finetune-laya", "System 1b: head-only Laya fine-tune on the local GPU"),
+        ("triage-text", "System 1b: Laya (+Jev if enabled) on the alert queue, then fusion"),
+    ):
+        cmd = sub.add_parser(name, help=help_text)
+        cmd.add_argument(
+            "--dataset",
+            type=DatasetName,
+            choices=list(DatasetName),
+            default=DatasetName.HI_SMALL,
+        )
     return parser
 
 
@@ -163,6 +177,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             baseline_command(settings, args.dataset)
         elif args.command == "train-tabular":
             system1a_command(settings, args.dataset)
+        elif args.command == "build-laya-data":
+            build_laya_dataset(settings, args.dataset)
+        elif args.command == "finetune-laya":
+            finetune_head_only(settings, args.dataset)
+        elif args.command == "triage-text":
+            system1b_command(settings, args.dataset)
     except AmlSentinelError as exc:
         # Our exceptions carry safe messages; anything else is a bug and should
         # surface with a traceback.
