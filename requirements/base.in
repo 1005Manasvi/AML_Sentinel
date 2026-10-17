@@ -5,3 +5,7 @@ pyarrow>=16
 networkx>=3.3
 pydantic>=2.7
 pydantic-settings>=2.3
+lightgbm>=4.3
+scikit-learn>=1.5
+scipy>=1.13
+matplotlib>=3.8

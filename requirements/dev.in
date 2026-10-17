@@ -4,6 +4,7 @@ ruff
 mypy
 pandas-stubs
 types-networkx
+scipy-stubs
 pytest
 pytest-cov
 hypothesis

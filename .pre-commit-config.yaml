@@ -17,21 +17,6 @@ repos:
     hooks:
       - id: gitleaks
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
-    hooks:
-      - id: ruff
-        args: ["--fix"]
-      - id: ruff-format
-
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.10
-    hooks:
-      - id: bandit
-        args: ["-c", "pyproject.toml", "-r", "src"]
-        additional_dependencies: ["bandit[toml]"]
-        pass_filenames: false
-
   - repo: https://github.com/pypa/pip-audit
     rev: v2.7.3
     hooks:
@@ -39,9 +24,27 @@ repos:
         args: ["--strict", "--require-hashes", "-r", "requirements/base.txt"]
         files: ^requirements/.*\.txt$
 
-  # mypy runs from the project venv so it sees the exact pinned stubs.
+  # Python tooling runs from the project venv so hooks use exactly the versions in
+  # requirements/dev.txt. Remote hook pins drifted from the lockfile (ruff 0.6.9 vs
+  # 0.17.1) and made files flip formatting between commits.
   - repo: local
     hooks:
+      - id: ruff
+        name: ruff check
+        entry: ruff check --fix
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format
+        language: system
+        types: [python]
+      - id: bandit
+        name: bandit
+        entry: bandit -c pyproject.toml -r src
+        language: system
+        pass_filenames: false
+        types: [python]
       - id: mypy
         name: mypy --strict
         entry: mypy
