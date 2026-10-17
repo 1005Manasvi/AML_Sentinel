@@ -40,6 +40,7 @@ class Settings(BaseSettings):
         test_end: Exclusive end of the test period; later rows are dropped.
         llm_provider: SAR drafting backend; ``template`` is fully local.
         llm_api_key: Key for the external LLM provider.
+        llm_model: Model id for the external SAR drafter (Anthropic).
         jev_enabled: Enable the Jev benchmark adapter (synthetic data only).
         jev_api_key: Key for the Jev hosted API.
     """
@@ -66,6 +67,7 @@ class Settings(BaseSettings):
 
     llm_provider: Literal["template", "external"] = "template"
     llm_api_key: SecretStr | None = None
+    llm_model: str = "claude-opus-5-5"
 
     jev_enabled: bool = False
     jev_api_key: SecretStr | None = None

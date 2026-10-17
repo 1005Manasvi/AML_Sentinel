@@ -221,10 +221,16 @@ def system1b_command(
         path.write_text(json.dumps(fusion.to_dict()) + "\n", encoding="utf-8", newline="\n")
         report["fusion"][f"fused[{combo}]"]["sha256"] = sha256_file(path)
 
-    test = alert_sets["test"]
-    table = pd.DataFrame({"tx_id": frame["tx_id"].to_numpy()[test.rows], "y": test.y})
-    for name, cols in test_scores.items():
-        table[f"p__{name}"] = cols["p"]
+    parts = []
+    for split, key in (("val", "p_val"), ("test", "p")):
+        alerts = alert_sets[split]
+        part = pd.DataFrame(
+            {"tx_id": frame["tx_id"].to_numpy()[alerts.rows], "y": alerts.y, "split": split}
+        )
+        for name, cols in test_scores.items():
+            part[f"p__{name}"] = cols[key]
+        parts.append(part)
+    table = pd.concat(parts, ignore_index=True)
     table.to_parquet(
         settings.processed_dir / f"{dataset.value}.system1b_scores.parquet", index=False
     )

@@ -281,8 +281,9 @@ def evaluate_system1b(
         latency_ms: ``{text_model: ms per alert}``.
 
     Returns:
-        ``(report, test_scores, fusion_models)``. ``test_scores[name]`` holds every
-        score evaluated on the test alerts.
+        ``(report, scores, fusion_models)``. ``scores[name]["p"]`` holds test-alert
+        scores and ``scores[name]["p_val"]`` validation-alert scores (out-of-fold for
+        fused models).
     """
     val, test = alert_sets["val"], alert_sets["test"]
     report: dict[str, Any] = {
@@ -299,7 +300,7 @@ def evaluate_system1b(
             **score_metrics(test.y, p),
             "escalation": escalation_metrics(val.y, val.tabular[name], test.y, p),
         }
-        test_scores[name] = {"p": p}
+        test_scores[name] = {"p": p, "p_val": val.tabular[name]}
     for name, by_split in outputs.items():
         out_test = by_split["test"]
         report["models"][name] = {
@@ -313,7 +314,7 @@ def evaluate_system1b(
             "mean_risk_negative": _mean_or_none(out_test.risk, test.y == 0),
             "reliability_test": reliability_table(out_test.scores, test.y, n_bins=10),
         }
-        test_scores[name] = {"p": out_test.scores}
+        test_scores[name] = {"p": out_test.scores, "p_val": by_split["val"].scores}
 
     fusions: dict[str, FusionModel] = {}
     combos: list[tuple[str, str, str | None]] = [(t, t, None) for t in TABULAR]
@@ -321,7 +322,7 @@ def evaluate_system1b(
     for combo, tab, text in combos:
         x_val = fusion_inputs(val.tabular[tab], outputs[text]["val"] if text else None)
         x_test = fusion_inputs(test.tabular[tab], outputs[text]["test"] if text else None)
-        model = FusionModel.fit(x_val, val.y)
+        model, p_val_oof = FusionModel.fit_oof(x_val, val.y)
         p_val, p_test = model.predict(x_val), model.predict(x_test)
         report["fusion"][f"fused[{combo}]"] = {
             **score_metrics(test.y, p_test),
@@ -331,7 +332,9 @@ def evaluate_system1b(
             "reliability_test": reliability_table(p_test, test.y, n_bins=10),
         }
         fusions[combo] = model
-        test_scores[f"fused[{combo}]"] = {"p": p_test}
+        # Validation scores are out-of-fold, so a later model fitted on validation
+        # alerts never sees in-sample fusion outputs.
+        test_scores[f"fused[{combo}]"] = {"p": p_test, "p_val": p_val_oof}
     report["significance"] = significance(test.y, test_scores, list(outputs))
     return report, test_scores, fusions
 

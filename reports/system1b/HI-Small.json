@@ -270,7 +270,7 @@
           }
         }
       },
-      "latency_ms_per_alert": 442.12762365000157,
+      "latency_ms_per_alert": 448.541711599999,
       "mean_risk_positive": 1.4132841328413284,
       "mean_risk_negative": 1.3140252078305175,
       "reliability_test": [
@@ -438,7 +438,7 @@
           }
         }
       },
-      "latency_ms_per_alert": 296.0261787999989,
+      "latency_ms_per_alert": 303.51613687499776,
       "mean_risk_positive": 3.5461254612546127,
       "mean_risk_negative": 3.5427728613569323,
       "reliability_test": [

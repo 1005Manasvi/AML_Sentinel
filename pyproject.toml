@@ -61,7 +61,7 @@ plugins = ["pydantic.mypy"]
 # scikit-learn and laya ship no type information (laya is also optional, absent in CI).
 # Keep the exemption as narrow as possible.
 [[tool.mypy.overrides]]
-module = ["sklearn", "sklearn.*", "laya", "laya.*", "torch_geometric", "torch_geometric.*", "safetensors", "safetensors.*"]
+module = ["sklearn", "sklearn.*", "laya", "laya.*", "torch_geometric", "torch_geometric.*", "safetensors", "safetensors.*", "anthropic", "anthropic.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]

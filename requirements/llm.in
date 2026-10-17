@@ -1,0 +1,4 @@
+# Optional external SAR drafter (LLM_PROVIDER=external). The template drafter needs
+# nothing extra. Only pseudonymised case facts are ever sent (SECURITY.md).
+-c base.txt
+anthropic

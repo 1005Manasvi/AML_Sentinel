@@ -64,6 +64,8 @@ def _escalated(settings: Settings, dataset: DatasetName, tx_ids: np.ndarray) -> 
     if not path.is_file():
         return None
     s1b = pd.read_parquet(path)
+    if "split" in s1b.columns:  # newer files hold val (out-of-fold) and test rows
+        s1b = s1b.loc[s1b["split"] == "test"]
     col = next((c for c in FUSED_PREFERENCE if c in s1b.columns), None)
     if col is None:
         return None

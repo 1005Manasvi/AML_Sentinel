@@ -117,6 +117,19 @@ class FusionModel:
 
     @classmethod
     def fit(cls, inputs: pd.DataFrame, y: npt.ArrayLike) -> FusionModel:
+        """Fit the stacker and its calibrator (see :meth:`fit_oof`).
+
+        Args:
+            inputs: Validation-alert inputs, time-ordered.
+            y: Labels.
+
+        Returns:
+            The fitted fusion model.
+        """
+        return cls.fit_oof(inputs, y)[0]
+
+    @classmethod
+    def fit_oof(cls, inputs: pd.DataFrame, y: npt.ArrayLike) -> tuple[FusionModel, FloatArray]:
         """Fit the stacker and its calibrator on validation alerts (in time order).
 
         Args:
@@ -124,7 +137,9 @@ class FusionModel:
             y: Labels.
 
         Returns:
-            The fitted fusion model.
+            ``(model, oof)``: the model refitted on all rows, plus calibrated
+            **out-of-fold** scores for the fitting rows. Downstream models fitted
+            on the same rows must use ``oof``, never in-sample predictions.
 
         Raises:
             DataValidationError: If there are too few rows or only one class.
@@ -146,7 +161,7 @@ class FusionModel:
         method, _ = select_method(oof, t)
         calibrator = FITTERS[method](oof, t)
         mean, scale, coef, intercept = cls._fit_lr(x, t)
-        return cls(
+        model = cls(
             inputs=tuple(inputs.columns),
             mean=tuple(float(v) for v in mean),
             scale=tuple(float(v) for v in scale),
@@ -154,6 +169,7 @@ class FusionModel:
             intercept=intercept,
             calibrator=calibrator,
         )
+        return model, calibrator.transform(oof)
 
     def predict(self, inputs: pd.DataFrame) -> FloatArray:
         """Calibrated ``p_triage``.
