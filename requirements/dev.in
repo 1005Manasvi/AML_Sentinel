@@ -1,0 +1,18 @@
+# Dev/test/security tooling. Constrained to the runtime lock so versions agree.
+-c base.txt
+ruff
+mypy
+pandas-stubs
+types-networkx
+pytest
+pytest-cov
+hypothesis
+bandit
+pip-audit
+pre-commit
+pip-tools
+# EDA notebook
+ipykernel
+nbformat
+nbconvert
+matplotlib

@@ -1,0 +1,5 @@
+# Normalise to LF in the repo so Linux CI and Windows dev agree.
+* text=auto eol=lf
+*.ipynb text eol=lf
+*.png binary
+*.parquet binary

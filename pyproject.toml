@@ -1,0 +1,83 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aml-sentinel"
+version = "0.1.0"
+description = "Real-time anti-money-laundering transaction monitoring (System 1 / System 2 triage)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary - portfolio project" }
+authors = [{ name = "Manasvi Patil" }]
+# Loose ranges here; exact versions + hashes live in requirements/*.txt (pip-tools).
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "pyarrow>=16",
+    "networkx>=3.3",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+]
+
+[project.scripts]
+aml-sentinel = "aml_sentinel.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aml_sentinel"]
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "B", "UP", "N", "S", "C4", "SIM", "RUF",
+    "D",    # docstrings (google convention)
+    "T20",  # no print
+    "PT", "PTH", "DTZ", "LOG", "G",
+]
+ignore = ["D105", "D107"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests: asserts, planted fake secrets, and naive datetimes (dataset is tz-naive).
+"tests/**" = ["S101", "D", "S105", "S311", "DTZ001", "RUF012"]
+"notebooks/**" = ["T20", "D", "E501"]  # exploratory print lines
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = "src"
+packages = ["aml_sentinel"]
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --cov=aml_sentinel --cov-report=term-missing"
+markers = [
+    "real_data: needs the IBM AMLworld files in data/raw (skipped when absent)",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["aml_sentinel"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+
+# ---------------------------------------------------------------- bandit
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]

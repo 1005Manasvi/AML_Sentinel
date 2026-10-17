@@ -1,0 +1,51 @@
+# --- Data and model artifacts: never committed (see data/README.md) ---
+data/raw/*
+!data/raw/.gitkeep
+data/processed/
+data/interim/
+models/
+artifacts/
+reports/generated/
+*.parquet
+*.csv
+# The small, self-generated synthetic sample IS committed (demo without Kaggle).
+!data/sample/*.csv
+*.pkl
+*.pickle
+*.joblib
+*.safetensors
+*.pt
+*.bin
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# --- Tooling caches ---
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.ipynb_checkpoints/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

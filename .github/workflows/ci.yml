@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/*.txt
+      - name: Install (hash-verified)
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements/base.txt -r requirements/dev.txt
+          pip install --no-deps -e .
+      - name: ruff
+        run: |
+          ruff check src tests
+          ruff format --check src tests
+      - name: mypy --strict
+        run: mypy
+      - name: pytest + coverage (>= 85%)
+        run: pytest --cov-report=xml
+      - name: bandit
+        run: bandit -c pyproject.toml -r src
+      - name: pip-audit
+        run: pip-audit --strict --require-hashes -r requirements/base.txt
+
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

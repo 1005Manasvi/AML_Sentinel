@@ -1,0 +1,7 @@
+# Runtime dependencies. Compile with: make lock
+numpy>=1.26
+pandas>=2.2
+pyarrow>=16
+networkx>=3.3
+pydantic>=2.7
+pydantic-settings>=2.3
