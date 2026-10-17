@@ -57,6 +57,7 @@ class Settings(BaseSettings):
 
     data_dir: Path = Path("data")
     models_dir: Path = Path("models")
+    reports_dir: Path = Path("reports")
     random_seed: int = Field(default=42, ge=0)
 
     train_end: datetime = datetime(2022, 9, 7)  # noqa: DTZ001 - dataset timestamps are naive
