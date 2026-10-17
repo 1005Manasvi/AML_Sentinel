@@ -1,0 +1,459 @@
+{
+  "dataset": "HI-Small",
+  "horizons": {
+    "strict": {
+      "hours": 0.0,
+      "test": {
+        "separation": {
+          "alerts": 4000,
+          "positives": 271,
+          "base_rate": 0.06775,
+          "any": {
+            "fires": 1156,
+            "rate_on_laundering": 0.5166051660516605,
+            "rate_on_benign": 0.2724591043175114,
+            "precision": 0.12110726643598616,
+            "lift": 1.7875611282064376
+          },
+          "circular": {
+            "fires": 121,
+            "rate_on_laundering": 0.07749077490774908,
+            "rate_on_benign": 0.026816840976133013,
+            "precision": 0.17355371900826447,
+            "lift": 2.5616785093470766
+          },
+          "structuring": {
+            "fires": 4,
+            "rate_on_laundering": 0.007380073800738007,
+            "rate_on_benign": 0.0005363368195226602,
+            "precision": 0.5,
+            "lift": 7.380073800738007
+          },
+          "fan_in": {
+            "fires": 691,
+            "rate_on_laundering": 0.22509225092250923,
+            "rate_on_benign": 0.16894609814963799,
+            "precision": 0.08827785817655572,
+            "lift": 1.3029942166281285
+          },
+          "fan_out": {
+            "fires": 363,
+            "rate_on_laundering": 0.2693726937269373,
+            "rate_on_benign": 0.07776883883078574,
+            "precision": 0.20110192837465565,
+            "lift": 2.9682941457513747
+          },
+          "scatter_gather": {
+            "fires": 37,
+            "rate_on_laundering": 0.0959409594095941,
+            "rate_on_benign": 0.0029498525073746312,
+            "precision": 0.7027027027027027,
+            "lift": 10.37199561184801
+          },
+          "gather_scatter": {
+            "fires": 178,
+            "rate_on_laundering": 0.16974169741697417,
+            "rate_on_benign": 0.035398230088495575,
+            "precision": 0.25842696629213485,
+            "lift": 3.814420166673577
+          }
+        },
+        "typology_agreement": {
+          "BIPARTITE": {
+            "n": 18,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.4444444444444444
+          },
+          "CYCLE": {
+            "n": 20,
+            "matched": 5,
+            "rate": 0.25,
+            "any_rate": 0.5
+          },
+          "FAN-IN": {
+            "n": 14,
+            "matched": 6,
+            "rate": 0.42857142857142855,
+            "any_rate": 0.6428571428571429
+          },
+          "FAN-OUT": {
+            "n": 34,
+            "matched": 24,
+            "rate": 0.7058823529411765,
+            "any_rate": 0.7352941176470589
+          },
+          "GATHER-SCATTER": {
+            "n": 52,
+            "matched": 15,
+            "rate": 0.28846153846153844,
+            "any_rate": 0.6923076923076923
+          },
+          "RANDOM": {
+            "n": 14,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.14285714285714285
+          },
+          "SCATTER-GATHER": {
+            "n": 40,
+            "matched": 21,
+            "rate": 0.525,
+            "any_rate": 0.75
+          },
+          "STACK": {
+            "n": 37,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.32432432432432434
+          }
+        },
+        "cost": {
+          "ms_median": 16.989249998005107,
+          "ms_p95": 35.614580010587794,
+          "case_rows_median": 32.0,
+          "truncated_share": 0.18575
+        },
+        "escalated_subset": {
+          "separation": {
+            "alerts": 200,
+            "positives": 148,
+            "base_rate": 0.74,
+            "any": {
+              "fires": 104,
+              "rate_on_laundering": 0.5743243243243243,
+              "rate_on_benign": 0.36538461538461536,
+              "precision": 0.8173076923076923,
+              "lift": 1.1044698544698544
+            },
+            "circular": {
+              "fires": 13,
+              "rate_on_laundering": 0.07432432432432433,
+              "rate_on_benign": 0.038461538461538464,
+              "precision": 0.8461538461538461,
+              "lift": 1.1434511434511434
+            },
+            "structuring": {
+              "fires": 1,
+              "rate_on_laundering": 0.006756756756756757,
+              "rate_on_benign": 0.0,
+              "precision": 1.0,
+              "lift": 1.3513513513513513
+            },
+            "fan_in": {
+              "fires": 46,
+              "rate_on_laundering": 0.23648648648648649,
+              "rate_on_benign": 0.21153846153846154,
+              "precision": 0.7608695652173914,
+              "lift": 1.028202115158637
+            },
+            "fan_out": {
+              "fires": 53,
+              "rate_on_laundering": 0.32432432432432434,
+              "rate_on_benign": 0.09615384615384616,
+              "precision": 0.9056603773584906,
+              "lift": 1.2238653748087711
+            },
+            "scatter_gather": {
+              "fires": 20,
+              "rate_on_laundering": 0.12162162162162163,
+              "rate_on_benign": 0.038461538461538464,
+              "precision": 0.9,
+              "lift": 1.2162162162162162
+            },
+            "gather_scatter": {
+              "fires": 32,
+              "rate_on_laundering": 0.1891891891891892,
+              "rate_on_benign": 0.07692307692307693,
+              "precision": 0.875,
+              "lift": 1.1824324324324325
+            }
+          },
+          "typology_agreement": {
+            "BIPARTITE": {
+              "n": 13,
+              "matched": null,
+              "rate": null,
+              "any_rate": 0.38461538461538464
+            },
+            "CYCLE": {
+              "n": 8,
+              "matched": 2,
+              "rate": 0.25,
+              "any_rate": 0.375
+            },
+            "FAN-IN": {
+              "n": 7,
+              "matched": 3,
+              "rate": 0.42857142857142855,
+              "any_rate": 0.5714285714285714
+            },
+            "FAN-OUT": {
+              "n": 27,
+              "matched": 19,
+              "rate": 0.7037037037037037,
+              "any_rate": 0.7407407407407407
+            },
+            "GATHER-SCATTER": {
+              "n": 32,
+              "matched": 11,
+              "rate": 0.34375,
+              "any_rate": 0.71875
+            },
+            "RANDOM": {
+              "n": 10,
+              "matched": null,
+              "rate": null,
+              "any_rate": 0.0
+            },
+            "SCATTER-GATHER": {
+              "n": 27,
+              "matched": 16,
+              "rate": 0.5925925925925926,
+              "any_rate": 0.8148148148148148
+            },
+            "STACK": {
+              "n": 24,
+              "matched": null,
+              "rate": null,
+              "any_rate": 0.3333333333333333
+            }
+          },
+          "cost": {
+            "ms_median": 20.41139999346342,
+            "ms_p95": 38.138565008557634,
+            "case_rows_median": 84.5,
+            "truncated_share": 0.335
+          }
+        }
+      }
+    },
+    "next_day": {
+      "hours": 24.0,
+      "test": {
+        "separation": {
+          "alerts": 4000,
+          "positives": 271,
+          "base_rate": 0.06775,
+          "any": {
+            "fires": 1947,
+            "rate_on_laundering": 0.6457564575645757,
+            "rate_on_benign": 0.47519442209707696,
+            "precision": 0.08988186954288649,
+            "lift": 1.326669661149616
+          },
+          "circular": {
+            "fires": 212,
+            "rate_on_laundering": 0.11070110701107011,
+            "rate_on_benign": 0.04880665057656208,
+            "precision": 0.14150943396226415,
+            "lift": 2.0887001322843415
+          },
+          "structuring": {
+            "fires": 11,
+            "rate_on_laundering": 0.007380073800738007,
+            "rate_on_benign": 0.002413515687851971,
+            "precision": 0.18181818181818182,
+            "lift": 2.683663200268366
+          },
+          "fan_in": {
+            "fires": 1438,
+            "rate_on_laundering": 0.3210332103321033,
+            "rate_on_benign": 0.362295521587557,
+            "precision": 0.06050069541029207,
+            "lift": 0.8929991942478533
+          },
+          "fan_out": {
+            "fires": 403,
+            "rate_on_laundering": 0.3284132841328413,
+            "rate_on_benign": 0.08420488066505766,
+            "precision": 0.22084367245657568,
+            "lift": 3.25968520231108
+          },
+          "scatter_gather": {
+            "fires": 50,
+            "rate_on_laundering": 0.12546125461254612,
+            "rate_on_benign": 0.004290694556181282,
+            "precision": 0.68,
+            "lift": 10.03690036900369
+          },
+          "gather_scatter": {
+            "fires": 207,
+            "rate_on_laundering": 0.2177121771217712,
+            "rate_on_benign": 0.039688924644676854,
+            "precision": 0.28502415458937197,
+            "lift": 4.206998591725047
+          }
+        },
+        "typology_agreement": {
+          "BIPARTITE": {
+            "n": 18,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.5555555555555556
+          },
+          "CYCLE": {
+            "n": 20,
+            "matched": 7,
+            "rate": 0.35,
+            "any_rate": 0.6
+          },
+          "FAN-IN": {
+            "n": 14,
+            "matched": 10,
+            "rate": 0.7142857142857143,
+            "any_rate": 0.9285714285714286
+          },
+          "FAN-OUT": {
+            "n": 34,
+            "matched": 31,
+            "rate": 0.9117647058823529,
+            "any_rate": 0.9411764705882353
+          },
+          "GATHER-SCATTER": {
+            "n": 52,
+            "matched": 20,
+            "rate": 0.38461538461538464,
+            "any_rate": 0.7884615384615384
+          },
+          "RANDOM": {
+            "n": 14,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.21428571428571427
+          },
+          "SCATTER-GATHER": {
+            "n": 40,
+            "matched": 27,
+            "rate": 0.675,
+            "any_rate": 0.925
+          },
+          "STACK": {
+            "n": 37,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.35135135135135137
+          }
+        },
+        "cost": {
+          "ms_median": 19.723800010979176,
+          "ms_p95": 46.21073000380418,
+          "case_rows_median": 49.0,
+          "truncated_share": 0.254
+        },
+        "escalated_subset": {
+          "separation": {
+            "alerts": 200,
+            "positives": 148,
+            "base_rate": 0.74,
+            "any": {
+              "fires": 128,
+              "rate_on_laundering": 0.6959459459459459,
+              "rate_on_benign": 0.4807692307692308,
+              "precision": 0.8046875,
+              "lift": 1.0874155405405406
+            },
+            "circular": {
+              "fires": 20,
+              "rate_on_laundering": 0.11486486486486487,
+              "rate_on_benign": 0.057692307692307696,
+              "precision": 0.85,
+              "lift": 1.1486486486486487
+            },
+            "structuring": {
+              "fires": 1,
+              "rate_on_laundering": 0.006756756756756757,
+              "rate_on_benign": 0.0,
+              "precision": 1.0,
+              "lift": 1.3513513513513513
+            },
+            "fan_in": {
+              "fires": 60,
+              "rate_on_laundering": 0.31756756756756754,
+              "rate_on_benign": 0.25,
+              "precision": 0.7833333333333333,
+              "lift": 1.0585585585585586
+            },
+            "fan_out": {
+              "fires": 65,
+              "rate_on_laundering": 0.38513513513513514,
+              "rate_on_benign": 0.15384615384615385,
+              "precision": 0.8769230769230769,
+              "lift": 1.185031185031185
+            },
+            "scatter_gather": {
+              "fires": 25,
+              "rate_on_laundering": 0.1554054054054054,
+              "rate_on_benign": 0.038461538461538464,
+              "precision": 0.92,
+              "lift": 1.2432432432432432
+            },
+            "gather_scatter": {
+              "fires": 41,
+              "rate_on_laundering": 0.23648648648648649,
+              "rate_on_benign": 0.11538461538461539,
+              "precision": 0.8536585365853658,
+              "lift": 1.1535926170072512
+            }
+          },
+          "typology_agreement": {
+            "BIPARTITE": {
+              "n": 13,
+              "matched": null,
+              "rate": null,
+              "any_rate": 0.38461538461538464
+            },
+            "CYCLE": {
+              "n": 8,
+              "matched": 3,
+              "rate": 0.375,
+              "any_rate": 0.5
+            },
+            "FAN-IN": {
+              "n": 7,
+              "matched": 5,
+              "rate": 0.7142857142857143,
+              "any_rate": 1.0
+            },
+            "FAN-OUT": {
+              "n": 27,
+              "matched": 25,
+              "rate": 0.9259259259259259,
+              "any_rate": 0.9629629629629629
+            },
+            "GATHER-SCATTER": {
+              "n": 32,
+              "matched": 15,
+              "rate": 0.46875,
+              "any_rate": 0.8125
+            },
+            "RANDOM": {
+              "n": 10,
+              "matched": null,
+              "rate": null,
+              "any_rate": 0.0
+            },
+            "SCATTER-GATHER": {
+              "n": 27,
+              "matched": 20,
+              "rate": 0.7407407407407407,
+              "any_rate": 0.9629629629629629
+            },
+            "STACK": {
+              "n": 24,
+              "matched": null,
+              "rate": null,
+              "any_rate": 0.375
+            }
+          },
+          "cost": {
+            "ms_median": 22.059000002627727,
+            "ms_p95": 48.42696999548927,
+            "case_rows_median": 110.0,
+            "truncated_share": 0.395
+          }
+        }
+      }
+    }
+  }
+}

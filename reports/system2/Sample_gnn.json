@@ -1,0 +1,300 @@
+{
+  "dataset": "Sample",
+  "setting": "end-of-period batch (GNN) vs real-time per-transaction (LightGBM, max per pair)",
+  "graphs": {
+    "train": {
+      "pairs": 3305,
+      "positive_pairs": 164
+    },
+    "val": {
+      "pairs": 1137,
+      "positive_pairs": 39
+    },
+    "test": {
+      "pairs": 1027,
+      "positive_pairs": 8
+    }
+  },
+  "training": {
+    "best_epoch": 21,
+    "best_val_ap": 0.44824153969223574
+  },
+  "pairs": {
+    "gnn": {
+      "ranking": {
+        "average_precision": 0.03401887029393052,
+        "roc_auc": 0.742639842983317,
+        "base_rate": 0.007789678675754625
+      },
+      "precision_at_k": {
+        "100": {
+          "n": 1027,
+          "positives": 8,
+          "alerts": 100,
+          "tp": 2,
+          "fp": 98,
+          "fn": 6,
+          "tn": 921,
+          "precision": 0.02,
+          "recall": 0.25,
+          "false_positive_rate": 0.09617271835132483,
+          "alert_rate": 0.09737098344693282,
+          "f1": 0.037037037037037035
+        },
+        "1000": {
+          "n": 1027,
+          "positives": 8,
+          "alerts": 1000,
+          "tp": 8,
+          "fp": 992,
+          "fn": 0,
+          "tn": 27,
+          "precision": 0.008,
+          "recall": 1.0,
+          "false_positive_rate": 0.9735034347399412,
+          "alert_rate": 0.9737098344693281,
+          "f1": 0.015873015873015872
+        },
+        "10000": {
+          "n": 1027,
+          "positives": 8,
+          "alerts": 1027,
+          "tp": 8,
+          "fp": 1019,
+          "fn": 0,
+          "tn": 0,
+          "precision": 0.007789678675754625,
+          "recall": 1.0,
+          "false_positive_rate": 1.0,
+          "alert_rate": 1.0,
+          "f1": 0.015458937198067634
+        }
+      },
+      "pr_curve": {
+        "precision": [
+          0.007789678675754625,
+          0.009641873278236915,
+          0.018461538461538463,
+          0.01567398119122257,
+          0.013888888888888888,
+          0.013215859030837005,
+          0.010471204188481676,
+          0.023255813953488372,
+          0.0
+        ],
+        "recall": [
+          1.0,
+          0.875,
+          0.75,
+          0.625,
+          0.5,
+          0.375,
+          0.25,
+          0.125,
+          0.0
+        ]
+      }
+    },
+    "lgbm_all_pairmax": {
+      "ranking": {
+        "average_precision": 0.1883815073292123,
+        "roc_auc": 0.9539990186457311,
+        "base_rate": 0.007789678675754625
+      },
+      "precision_at_k": {
+        "100": {
+          "n": 1027,
+          "positives": 8,
+          "alerts": 100,
+          "tp": 7,
+          "fp": 93,
+          "fn": 1,
+          "tn": 926,
+          "precision": 0.07,
+          "recall": 0.875,
+          "false_positive_rate": 0.09126594700686948,
+          "alert_rate": 0.09737098344693282,
+          "f1": 0.12962962962962962
+        },
+        "1000": {
+          "n": 1027,
+          "positives": 8,
+          "alerts": 1000,
+          "tp": 8,
+          "fp": 992,
+          "fn": 0,
+          "tn": 27,
+          "precision": 0.008,
+          "recall": 1.0,
+          "false_positive_rate": 0.9735034347399412,
+          "alert_rate": 0.9737098344693281,
+          "f1": 0.015873015873015872
+        },
+        "10000": {
+          "n": 1027,
+          "positives": 8,
+          "alerts": 1027,
+          "tp": 8,
+          "fp": 1019,
+          "fn": 0,
+          "tn": 0,
+          "precision": 0.007789678675754625,
+          "recall": 1.0,
+          "false_positive_rate": 1.0,
+          "alert_rate": 1.0,
+          "f1": 0.015458937198067634
+        }
+      },
+      "pr_curve": {
+        "precision": [
+          0.007789678675754625,
+          0.029288702928870293,
+          0.13333333333333333,
+          0.13513513513513514,
+          0.125,
+          0.14285714285714285,
+          0.125,
+          0.08333333333333333,
+          0.0
+        ],
+        "recall": [
+          1.0,
+          0.875,
+          0.75,
+          0.625,
+          0.5,
+          0.375,
+          0.25,
+          0.125,
+          0.0
+        ]
+      }
+    },
+    "lgbm_no_shortcuts_pairmax": {
+      "ranking": {
+        "average_precision": 0.09605479080527793,
+        "roc_auc": 0.9344946025515211,
+        "base_rate": 0.007789678675754625
+      },
+      "precision_at_k": {
+        "100": {
+          "n": 1027,
+          "positives": 8,
+          "alerts": 100,
+          "tp": 7,
+          "fp": 93,
+          "fn": 1,
+          "tn": 926,
+          "precision": 0.07,
+          "recall": 0.875,
+          "false_positive_rate": 0.09126594700686948,
+          "alert_rate": 0.09737098344693282,
+          "f1": 0.12962962962962962
+        },
+        "1000": {
+          "n": 1027,
+          "positives": 8,
+          "alerts": 1000,
+          "tp": 8,
+          "fp": 992,
+          "fn": 0,
+          "tn": 27,
+          "precision": 0.008,
+          "recall": 1.0,
+          "false_positive_rate": 0.9735034347399412,
+          "alert_rate": 0.9737098344693281,
+          "f1": 0.015873015873015872
+        },
+        "10000": {
+          "n": 1027,
+          "positives": 8,
+          "alerts": 1027,
+          "tp": 8,
+          "fp": 1019,
+          "fn": 0,
+          "tn": 0,
+          "precision": 0.007789678675754625,
+          "recall": 1.0,
+          "false_positive_rate": 1.0,
+          "alert_rate": 1.0,
+          "f1": 0.015458937198067634
+        }
+      },
+      "pr_curve": {
+        "precision": [
+          0.007789678675754625,
+          0.03211009174311927,
+          0.06818181818181818,
+          0.06172839506172839,
+          0.07692307692307693,
+          0.058823529411764705,
+          0.04,
+          0.05263157894736842,
+          0.0
+        ],
+        "recall": [
+          1.0,
+          0.875,
+          0.75,
+          0.625,
+          0.5,
+          0.375,
+          0.25,
+          0.125,
+          0.0
+        ]
+      }
+    }
+  },
+  "significance": {
+    "gnn vs lgbm_all_pairmax": {
+      "diff": -0.15436263703528177,
+      "ci_low": -0.4571173593439454,
+      "ci_high": 0.017265827408309616,
+      "p_not_better": 0.9633333333333334
+    },
+    "gnn vs lgbm_no_shortcuts_pairmax": {
+      "diff": -0.06203592051134741,
+      "ci_low": -0.27352469894667786,
+      "ci_high": 0.09006871893705803,
+      "p_not_better": 0.81
+    }
+  },
+  "vs_detectors": {
+    "alerts": 633,
+    "positives": 211,
+    "detectors_any": {
+      "n": 633,
+      "positives": 211,
+      "alerts": 495,
+      "tp": 152,
+      "fp": 343,
+      "fn": 59,
+      "tn": 79,
+      "precision": 0.30707070707070705,
+      "recall": 0.7203791469194313,
+      "false_positive_rate": 0.8127962085308057,
+      "alert_rate": 0.7819905213270142,
+      "f1": 0.4305949008498583
+    },
+    "gnn_top_n": {
+      "n": 633,
+      "positives": 211,
+      "alerts": 495,
+      "tp": 172,
+      "fp": 323,
+      "fn": 39,
+      "tn": 99,
+      "precision": 0.3474747474747475,
+      "recall": 0.8151658767772512,
+      "false_positive_rate": 0.7654028436018957,
+      "alert_rate": 0.7819905213270142,
+      "f1": 0.4872521246458924
+    },
+    "self_transfer_alerts_without_pair": 540
+  },
+  "artifacts": {
+    "weights": "gnn_sage.safetensors",
+    "sha256": "f233ed2274afb6a8b154a1cc683b80a24225351a130e8fafdf4d62302d4747c5"
+  }
+}

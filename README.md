@@ -169,7 +169,66 @@ RTX 3050 Laptop). Full report: [reports/system1b/](reports/system1b/).
   outputs are stacked with LightGBM. That costs about 300–440 ms of GPU time per
   alert. With the no-shortcut model, zero-shot Laya adds nothing significant.
 
-Full results arrive in Phases 5–8.
+### System 2: graph detectors and GNN experiment (Phase 5)
+
+**NetworkX detectors.** These run on past-only case subgraphs: 2 hops, 72 h before
+the alert, with hub accounts capped. They cover the same 4,000 HI-Small test
+alerts as Phase 4 (271 laundering, a 6.8% base rate).
+Every detector has a planted-pattern unit test.
+
+| Detector | Fires | On laundering | On benign | Precision | Lift |
+|---|---:|---:|---:|---:|---:|
+| any | 1,156 | 51.7% | 27.2% | 12.1% | 1.79x |
+| circular | 121 | 7.7% | 2.7% | 17.4% | 2.56x |
+| structuring | 4 | 0.7% | 0.1% | 50.0% | 7.38x |
+| fan_in | 691 | 22.5% | 16.9% | 8.8% | 1.30x |
+| fan_out | 363 | 26.9% | 7.8% | 20.1% | 2.97x |
+| scatter_gather | 37 | 9.6% | 0.3% | 70.3% | 10.37x |
+| gather_scatter | 178 | 17.0% | 3.5% | 25.8% | 3.81x |
+
+- The matching detector fired for these documented typologies: CYCLE 25.0%, FAN-IN 42.9%, FAN-OUT 70.6%, GATHER-SCATTER 28.8%, SCATTER-GATHER 52.5%.
+  STACK, BIPARTITE and RANDOM have no dedicated detector.
+- **On the escalated subset**, where System 2 actually runs, the base rate is
+  already 74.0%. The lift of "any finding" falls to
+  1.10x, so the detectors add little *ranking* power on top of
+  System 1. Their value is the **evidence**: named accounts, transactions and
+  patterns for the analyst and the SAR (Phase 6).
+- With a 24-hour investigation horizon, recall rises ("any" fires on
+  64.6% of laundering). But fan-in becomes
+  anti-informative (0.89x), because benign hubs keep
+  collecting payments.
+- On the bundled sample the detectors are *anti*-informative. The sample is much
+  denser than IBM's graph (600 accounts, 6.3k payments), so benign cases also look
+  like fans and cycles. Structuring is the exception (ADR-015).
+
+**GNN experiment (GraphSAGE, labelled as an experiment).** The unit is the account
+pair in the test period: 375,225 pairs, of which
+926 are laundering.
+
+| Model | PR-AUC | ROC-AUC | Precision@100 |
+|---|---:|---:|---:|
+| gnn | 0.042 | 0.844 | 24.0% |
+| lgbm_same_pair_inputs | 0.044 | 0.913 | 10.0% |
+| lgbm_all_pairmax | 0.414 | 0.958 | 99.0% |
+| lgbm_no_shortcuts_pairmax | 0.368 | 0.916 | 99.0% |
+
+- **Message passing adds nothing measurable.** The GNN vs LightGBM on the *same*
+  pair inputs differs by -0.002 PR-AUC, with a
+  95% CI of [-0.013, +0.011].
+- **Pair-level modelling is far behind** per-transaction LightGBM
+  (PR-AUC 0.042 vs 0.414). Aggregating payments into pairs
+  throws away the per-transaction timing and amount detail.
+- On the same 4,000 alerts, the GNN's top 1,156 beats the
+  detectors' 1,156 flags: 17.6% vs
+  12.1% precision. But the GNN sees the whole test
+  period while the detectors are strictly past-only, so this comparison favours
+  the GNN.
+- The first GNN run had a bug: training-graph node features were all zero. It was
+  found by the same-input ablation and fixed (ADR-016).
+
+To regenerate: `make detect gnn`. Reports: [reports/system2/](reports/system2/).
+
+Full results arrive in Phases 6–8.
 
 ## Limitations
 

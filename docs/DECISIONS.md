@@ -233,3 +233,59 @@ consequences.
 - **Latency note:** the 296–442 ms per alert measured in the full run is higher than
   the 121 ms smoke-test figure. That smoke test used batches of 32 with only four
   distinct states. The full-run numbers are the ones reported.
+
+## ADR-015: System 2 detectors run on past-only cases; findings are evidence
+
+- **Case:**
+  - The alert's two accounts, plus 2 hops of counterparties.
+  - Payments in the 72 h before the alert, and never after it by default. This is
+    the same no-lookahead rule as Phase 3.
+  - Hubs are capped at 50 rows per account and 3,000 rows per case, and any
+    truncation is recorded.
+  - Labels never enter a case.
+- **Detectors:** circular (time-respecting cycles with consistent amounts),
+  structuring (at least 3 deposits at 80–100% of 10k from distinct senders),
+  fan-in, fan-out, scatter-gather and gather-scatter. Each one has planted-pattern
+  unit tests, including negative cases.
+- **Performance fix:** the first scatter-gather took 2.3 s per dense case, because
+  it scanned the case DataFrame for every candidate pair. A per-case pair index
+  brought cases to about 20 ms median. Cycle enumeration has an explicit budget,
+  recorded on the finding.
+- **Measured (HI-Small, strict):**
+  - "Any finding" gives a 1.8x lift over the base rate inside the queue.
+    Scatter-gather is the sharpest (70% precision but low recall). Fan-in is weak
+    (1.3x), because benign hubs look like fan-ins.
+  - On the escalated subset the lift is only 1.1x, so the detectors are kept for
+    **evidence and explanation**, not as a ranking signal.
+- **Investigation horizon:** `next_day` (24 h) is reported as a separate, labelled
+  scenario. It raises recall, but fan-in turns anti-informative.
+- **Sample caveat:** the bundled sample's graph is much denser than IBM's, which
+  makes the detectors anti-informative there. The generator's density is a
+  documented limitation of the demo, not a property of the detectors.
+
+## ADR-016: GNN is an experiment; message passing did not help here
+
+- **Set-up:**
+  - The unit is an account pair per period, labelled laundering if any payment on
+    the pair in that period was laundering.
+  - A 2-layer GraphSAGE embeds the accounts and an MLP scores each pair. Training
+    is full batch, with early stopping on validation-pair AP.
+  - Weights are saved as safetensors with a SHA-256 manifest.
+  - The setting is end-of-period batch, which favours the GNN over the real-time
+    per-transaction models.
+- **Bug found and fixed:**
+  - The first version computed node features from history *before* each period.
+    The training period starts on the first day of data, so all training-graph
+    node features were zero, while validation and test were not. The GNN scored
+    PR-AUC 0.012.
+  - The same-input LightGBM ablation (0.044) exposed the gap. Node features now come
+    from each period's own structure, giving GNN PR-AUC 0.042, and a test asserts
+    that training node features are non-constant.
+- **Result:**
+  - The GNN equals LightGBM on the same pair inputs (no significant difference),
+    and both are far below per-transaction LightGBM aggregated to pairs (0.41).
+  - Message passing over this graph adds no measurable ranking power beyond pair
+    features. The main loss comes from aggregating payments into pairs.
+- **Decision:** the GNN stays an optional experiment (`make gnn-setup gnn`) and is
+  not part of the scoring pipeline. Validation on the Elliptic dataset was not done.
+  It is optional in the brief and recorded as future work.

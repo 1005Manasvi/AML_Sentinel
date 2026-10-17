@@ -1,0 +1,247 @@
+{
+  "dataset": "Sample",
+  "horizons": {
+    "strict": {
+      "hours": 0.0,
+      "test": {
+        "separation": {
+          "alerts": 633,
+          "positives": 211,
+          "base_rate": 0.3333333333333333,
+          "any": {
+            "fires": 495,
+            "rate_on_laundering": 0.7203791469194313,
+            "rate_on_benign": 0.8127962085308057,
+            "precision": 0.30707070707070705,
+            "lift": 0.9212121212121211
+          },
+          "circular": {
+            "fires": 209,
+            "rate_on_laundering": 0.09004739336492891,
+            "rate_on_benign": 0.45023696682464454,
+            "precision": 0.09090909090909091,
+            "lift": 0.27272727272727276
+          },
+          "structuring": {
+            "fires": 25,
+            "rate_on_laundering": 0.11374407582938388,
+            "rate_on_benign": 0.002369668246445498,
+            "precision": 0.96,
+            "lift": 2.88
+          },
+          "fan_in": {
+            "fires": 404,
+            "rate_on_laundering": 0.5165876777251185,
+            "rate_on_benign": 0.6990521327014217,
+            "precision": 0.2698019801980198,
+            "lift": 0.8094059405940595
+          },
+          "fan_out": {
+            "fires": 378,
+            "rate_on_laundering": 0.35071090047393366,
+            "rate_on_benign": 0.7203791469194313,
+            "precision": 0.19576719576719576,
+            "lift": 0.5873015873015873
+          },
+          "scatter_gather": {
+            "fires": 252,
+            "rate_on_laundering": 0.15639810426540285,
+            "rate_on_benign": 0.518957345971564,
+            "precision": 0.13095238095238096,
+            "lift": 0.3928571428571429
+          },
+          "gather_scatter": {
+            "fires": 399,
+            "rate_on_laundering": 0.3933649289099526,
+            "rate_on_benign": 0.7488151658767772,
+            "precision": 0.20802005012531327,
+            "lift": 0.6240601503759399
+          }
+        },
+        "typology_agreement": {
+          "BIPARTITE": {
+            "n": 16,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.6875
+          },
+          "CYCLE": {
+            "n": 14,
+            "matched": 4,
+            "rate": 0.2857142857142857,
+            "any_rate": 0.5714285714285714
+          },
+          "FAN-IN": {
+            "n": 19,
+            "matched": 16,
+            "rate": 0.8421052631578947,
+            "any_rate": 0.8421052631578947
+          },
+          "FAN-OUT": {
+            "n": 13,
+            "matched": 10,
+            "rate": 0.7692307692307693,
+            "any_rate": 0.8461538461538461
+          },
+          "GATHER-SCATTER": {
+            "n": 26,
+            "matched": 13,
+            "rate": 0.5,
+            "any_rate": 0.8076923076923077
+          },
+          "RANDOM": {
+            "n": 14,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.5
+          },
+          "SCATTER-GATHER": {
+            "n": 20,
+            "matched": 11,
+            "rate": 0.55,
+            "any_rate": 0.85
+          },
+          "STACK": {
+            "n": 22,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.5454545454545454
+          },
+          "STRUCTURING": {
+            "n": 29,
+            "matched": 23,
+            "rate": 0.7931034482758621,
+            "any_rate": 0.9310344827586207
+          }
+        },
+        "cost": {
+          "ms_median": 39.487100002588704,
+          "ms_p95": 352.2028200066415,
+          "case_rows_median": 202.0,
+          "truncated_share": 0.8056872037914692
+        }
+      }
+    },
+    "next_day": {
+      "hours": 24.0,
+      "test": {
+        "separation": {
+          "alerts": 633,
+          "positives": 211,
+          "base_rate": 0.3333333333333333,
+          "any": {
+            "fires": 556,
+            "rate_on_laundering": 0.8909952606635071,
+            "rate_on_benign": 0.8720379146919431,
+            "precision": 0.3381294964028777,
+            "lift": 1.0143884892086332
+          },
+          "circular": {
+            "fires": 226,
+            "rate_on_laundering": 0.15165876777251186,
+            "rate_on_benign": 0.4597156398104265,
+            "precision": 0.1415929203539823,
+            "lift": 0.4247787610619469
+          },
+          "structuring": {
+            "fires": 33,
+            "rate_on_laundering": 0.14218009478672985,
+            "rate_on_benign": 0.0071090047393364926,
+            "precision": 0.9090909090909091,
+            "lift": 2.7272727272727275
+          },
+          "fan_in": {
+            "fires": 472,
+            "rate_on_laundering": 0.6824644549763034,
+            "rate_on_benign": 0.7772511848341233,
+            "precision": 0.3050847457627119,
+            "lift": 0.9152542372881357
+          },
+          "fan_out": {
+            "fires": 445,
+            "rate_on_laundering": 0.5213270142180095,
+            "rate_on_benign": 0.7938388625592417,
+            "precision": 0.24719101123595505,
+            "lift": 0.7415730337078652
+          },
+          "scatter_gather": {
+            "fires": 350,
+            "rate_on_laundering": 0.33175355450236965,
+            "rate_on_benign": 0.6635071090047393,
+            "precision": 0.2,
+            "lift": 0.6000000000000001
+          },
+          "gather_scatter": {
+            "fires": 467,
+            "rate_on_laundering": 0.5545023696682464,
+            "rate_on_benign": 0.8293838862559242,
+            "precision": 0.2505353319057816,
+            "lift": 0.7516059957173448
+          }
+        },
+        "typology_agreement": {
+          "BIPARTITE": {
+            "n": 16,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.875
+          },
+          "CYCLE": {
+            "n": 14,
+            "matched": 7,
+            "rate": 0.5,
+            "any_rate": 0.7142857142857143
+          },
+          "FAN-IN": {
+            "n": 19,
+            "matched": 19,
+            "rate": 1.0,
+            "any_rate": 1.0
+          },
+          "FAN-OUT": {
+            "n": 13,
+            "matched": 12,
+            "rate": 0.9230769230769231,
+            "any_rate": 1.0
+          },
+          "GATHER-SCATTER": {
+            "n": 26,
+            "matched": 18,
+            "rate": 0.6923076923076923,
+            "any_rate": 0.9230769230769231
+          },
+          "RANDOM": {
+            "n": 14,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.5714285714285714
+          },
+          "SCATTER-GATHER": {
+            "n": 20,
+            "matched": 14,
+            "rate": 0.7,
+            "any_rate": 0.95
+          },
+          "STACK": {
+            "n": 22,
+            "matched": null,
+            "rate": null,
+            "any_rate": 0.8636363636363636
+          },
+          "STRUCTURING": {
+            "n": 29,
+            "matched": 29,
+            "rate": 1.0,
+            "any_rate": 1.0
+          }
+        },
+        "cost": {
+          "ms_median": 75.22500000777654,
+          "ms_p95": 410.2080599957844,
+          "case_rows_median": 320.0,
+          "truncated_share": 0.9067930489731437
+        }
+      }
+    }
+  }
+}
