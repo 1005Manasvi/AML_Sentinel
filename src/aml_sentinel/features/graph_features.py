@@ -57,14 +57,25 @@ def account_codes(frame: pd.DataFrame) -> tuple[IntArray, IntArray, int]:
     return codes[:n].astype(np.int64), codes[n:].astype(np.int64), len(uniques)
 
 
-def _node_stats(
+def node_stats(
     src: IntArray,
     dst: IntArray,
     usd: FloatArray,
     minutes: IntArray,
     n_nodes: int,
 ) -> dict[str, FloatArray]:
-    """Compute per-account statistics from a set of historical edges."""
+    """Compute per-account statistics from a set of historical edges.
+
+    Args:
+        src: Payer codes.
+        dst: Payee codes.
+        usd: USD amounts.
+        minutes: Timestamps in minutes.
+        n_nodes: Number of accounts in the index.
+
+    Returns:
+        Arrays of length ``n_nodes`` keyed by feature name (plus ``first_seen``).
+    """
     first_seen = np.full(n_nodes, np.iinfo(np.int64).max, dtype=np.int64)
     np.minimum.at(first_seen, src, minutes)
     np.minimum.at(first_seen, dst, minutes)
@@ -126,7 +137,7 @@ def snapshot_features(frame: pd.DataFrame) -> pd.DataFrame:
     for current in np.unique(day):
         rows = np.flatnonzero(day == current)
         history = minutes < current.astype("datetime64[m]").astype(np.int64)
-        stats = _node_stats(src[history], dst[history], usd[history], minutes[history], n_nodes)
+        stats = node_stats(src[history], dst[history], usd[history], minutes[history], n_nodes)
         now = minutes[rows]
         for side, ids in (("src", src[rows]), ("dst", dst[rows])):
             seen = stats["first_seen"][ids]

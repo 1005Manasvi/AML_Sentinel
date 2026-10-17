@@ -1,0 +1,4 @@
+# Optional GNN experiment (System 2). Uses the same torch as the Laya stack; for an
+# NVIDIA GPU install the CUDA build of torch afterwards (ADR-013).
+-c laya.txt
+torch-geometric
