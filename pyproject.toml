@@ -18,6 +18,11 @@ dependencies = [
     "networkx>=3.3",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "httpx2>=2.0",
+    "streamlit>=1.40",
+    "plotly>=5.24",
 ]
 
 [project.scripts]
@@ -58,10 +63,10 @@ packages = ["aml_sentinel"]
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 
-# scikit-learn and laya ship no type information (laya is also optional, absent in CI).
-# Keep the exemption as narrow as possible.
+# scikit-learn, laya, pyarrow and plotly ship no type information (laya is also optional,
+# absent in CI). Keep the exemption as narrow as possible.
 [[tool.mypy.overrides]]
-module = ["sklearn", "sklearn.*", "laya", "laya.*", "torch_geometric", "torch_geometric.*", "safetensors", "safetensors.*", "anthropic", "anthropic.*"]
+module = ["sklearn", "sklearn.*", "laya", "laya.*", "torch_geometric", "torch_geometric.*", "safetensors", "safetensors.*", "anthropic", "anthropic.*", "pyarrow", "pyarrow.*", "plotly", "plotly.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]

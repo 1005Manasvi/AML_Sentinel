@@ -9,3 +9,9 @@ lightgbm>=4.3
 scikit-learn>=1.5
 scipy>=1.13
 matplotlib>=3.8
+# Phase 7: authenticated API and analyst dashboard
+fastapi>=0.115
+uvicorn>=0.30
+httpx2>=2.0
+streamlit>=1.40
+plotly>=5.24
