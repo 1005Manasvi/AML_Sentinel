@@ -22,6 +22,7 @@ Labels are never read: every score file is loaded with an explicit column list.
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -83,6 +84,23 @@ class QueueEntry:
 
 
 @dataclass(frozen=True, slots=True)
+class ReliabilityBand:
+    """How often test alerts with a ``p_triage`` in ``[lo, hi]`` were laundering.
+
+    Attributes:
+        lo: Lowest score in the band.
+        hi: Highest score in the band.
+        count: Test alerts in the band.
+        frac_pos: Observed laundering rate.
+    """
+
+    lo: float
+    hi: float
+    count: int
+    frac_pos: float
+
+
+@dataclass(frozen=True, slots=True)
 class AlertQueue:
     """Ranked alerts plus the provenance of their scores.
 
@@ -92,6 +110,8 @@ class AlertQueue:
         threshold: Escalation threshold on ``p_triage`` (fitted on validation).
         escalate_share: Target share of validation alerts escalated.
         entries: Alerts, highest ``p_triage`` first.
+        reliability: Observed laundering rate per ``p_triage`` band on the held-out
+            test period, from ``reports/evaluation`` (empty if not evaluated).
     """
 
     dataset: DatasetName
@@ -99,6 +119,7 @@ class AlertQueue:
     threshold: float
     escalate_share: float
     entries: tuple[QueueEntry, ...]
+    reliability: tuple[ReliabilityBand, ...] = ()
     _by_case: dict[str, tuple[int, QueueEntry]] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -113,6 +134,24 @@ class AlertQueue:
     def __len__(self) -> int:
         """Number of alerts."""
         return len(self.entries)
+
+    def band_of(self, p: float) -> ReliabilityBand | None:
+        """The reliability band containing a score.
+
+        Scores between two bands, or outside all of them, use the nearest band.
+
+        Args:
+            p: A ``p_triage`` value.
+
+        Returns:
+            The band, or ``None`` when no evaluation is available.
+        """
+        if not self.reliability:
+            return None
+        return min(
+            self.reliability,
+            key=lambda b: 0.0 if b.lo <= p <= b.hi else min(abs(p - b.lo), abs(p - b.hi)),
+        )
 
     def get(self, case_id: str) -> QueueEntry | None:
         """Look up an alert.
@@ -246,4 +285,21 @@ def build_queue(
             "auto_closed": int((~escalated).sum()),
         },
     )
-    return AlertQueue(dataset, source, threshold, ESCALATE_SHARE, entries)
+    bands = _reliability(settings, dataset, source)
+    return AlertQueue(dataset, source, threshold, ESCALATE_SHARE, entries, bands)
+
+
+def _reliability(
+    settings: Settings, dataset: DatasetName, source: str
+) -> tuple[ReliabilityBand, ...]:
+    """Test-period reliability bands, only if measured for this very score."""
+    path = settings.reports_dir / "evaluation" / f"{dataset.value}.json"
+    if not path.is_file():
+        return ()
+    ablation = json.loads(path.read_text(encoding="utf-8")).get("ablation") or {}
+    if str(ablation.get("triage_column", "")).removeprefix("p__") != source:
+        return ()
+    return tuple(
+        ReliabilityBand(float(b["lo"]), float(b["hi"]), int(b["count"]), float(b["frac_pos"]))
+        for b in ablation.get("p_triage_reliability_test", [])
+    )

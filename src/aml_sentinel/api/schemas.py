@@ -155,6 +155,18 @@ class SarOut(_Out):
     created_at: str
 
 
+class ReliabilityOut(_Out):
+    """Observed laundering rate of test alerts in the same ``p_triage`` band."""
+
+    lo: float
+    hi: float
+    alerts: int
+    observed_rate: float
+    measured_on: Literal["held-out test period (reports/evaluation)"] = (
+        "held-out test period (reports/evaluation)"
+    )
+
+
 class CaseDetail(_Out):
     """Everything an analyst sees for one case."""
 
@@ -166,6 +178,9 @@ class CaseDetail(_Out):
     triage_source: str
     p_final: float | None = Field(
         description="Final combined score; informational, not used for ranking (ADR-020)"
+    )
+    reliability: ReliabilityOut | None = Field(
+        description="How often alerts with a similar p_triage were laundering on test"
     )
     escalated: bool
     status: CaseStatus

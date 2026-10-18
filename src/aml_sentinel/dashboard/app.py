@@ -191,6 +191,12 @@ def _case_page(client: api.ApiClient) -> None:
             f" Final combined score {d['p_final']:.3f} is informational and not used for "
             "ranking (it ranked worse on test, ADR-018)."
         )
+    rel = d.get("reliability")
+    if rel:
+        note += (
+            f" On the held-out test period, {rel['observed_rate']:.0%} of {rel['alerts']} alerts "
+            f"with p_triage {rel['lo']:.3f}-{rel['hi']:.3f} were laundering."
+        )
     if d["truncated"]:
         note += " Hub accounts were capped, so the case is truncated."
     st.caption(plain(note, max_len=600))

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import threading
 from datetime import timedelta
@@ -526,3 +527,51 @@ def test_queue_lookup_helpers(served_sample: ServedSample) -> None:
     assert q.rank_of(first.case_id) == 1
     assert q.get("CASE-0") is None
     assert q.rank_of("CASE-0") is None
+
+
+# ---------------------------------------------------------------- reliability bands
+def test_band_of_picks_the_containing_or_nearest_band() -> None:
+    from aml_sentinel.api.queue import ReliabilityBand
+
+    bands = (ReliabilityBand(0.0, 0.1, 10, 0.01), ReliabilityBand(0.2, 1.0, 10, 0.5))
+    q = AlertQueue(DatasetName.SAMPLE, "x", 0.5, 0.05, (), bands)
+    assert q.band_of(0.05) == bands[0]
+    assert q.band_of(0.99) == bands[1]
+    assert q.band_of(0.16) == bands[1]  # between bands: nearest edge
+    assert AlertQueue(DatasetName.SAMPLE, "x", 0.5, 0.05, ()).band_of(0.5) is None
+
+
+def test_reliability_is_attached_only_for_the_same_score(
+    served_sample: ServedSample, tmp_path: Path
+) -> None:
+    s = served_sample.settings
+    reports = tmp_path / "reports"
+    (reports / "evaluation").mkdir(parents=True)
+    band = {"lo": 0.0, "hi": 1.0, "count": 200, "mean_pred": 0.1, "frac_pos": 0.07}
+
+    def queue_with(column: str) -> AlertQueue:
+        doc = {"ablation": {"triage_column": column, "p_triage_reliability_test": [band]}}
+        (reports / "evaluation" / "Sample.json").write_text(json.dumps(doc), encoding="utf-8")
+        other = s.model_copy(update={"reports_dir": reports})
+        return build_queue(other, DatasetName.SAMPLE, served_sample.frame, served_sample.index)
+
+    assert queue_with("p__fused[lgbm_all]").reliability == ()  # different score: ignored
+    matched = queue_with("p__lgbm_all (calibrated)")
+    assert len(matched.reliability) == 1
+    service = CaseService(
+        queue=matched,
+        index=served_sample.index,
+        store=CaseStore(tmp_path / "c.sqlite3"),
+        audit=AuditLog(tmp_path / "a.jsonl"),
+    )
+    c = TestClient(create_app(s, service=service))
+    case_id = matched.entries[0].case_id
+    rel = c.get(f"/cases/{case_id}", headers=ANALYST).json()["reliability"]
+    assert rel["observed_rate"] == 0.07
+    assert rel["alerts"] == 200
+    assert rel["measured_on"].startswith("held-out test period")
+
+
+def test_case_detail_without_evaluation_has_no_reliability(client: TestClient) -> None:
+    case_id = _top_escalated(client)
+    assert client.get(f"/cases/{case_id}", headers=ANALYST).json()["reliability"] is None

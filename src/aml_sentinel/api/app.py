@@ -53,6 +53,7 @@ from aml_sentinel.api.schemas import (
     GroundingIssueOut,
     Health,
     Me,
+    ReliabilityOut,
     SarEdit,
     SarOut,
     ScoreRequest,
@@ -192,6 +193,13 @@ def _action_out(r: ActionRecord) -> ActionOut:
     return ActionOut(actor=r.actor, action=r.action, note=r.note, created_at=r.created_at)
 
 
+def _reliability_out(service: CaseService, p: float) -> ReliabilityOut | None:
+    band = service.queue.band_of(p)
+    if band is None:
+        return None
+    return ReliabilityOut(lo=band.lo, hi=band.hi, alerts=band.count, observed_rate=band.frac_pos)
+
+
 def _install_error_handlers(app: FastAPI) -> None:
     def detail(code: int, message: str) -> JSONResponse:
         return JSONResponse({"detail": message}, status_code=code)
@@ -308,6 +316,7 @@ def _register_routes(app: FastAPI) -> None:
             p_triage=entry.p_triage,
             triage_source=service.queue.triage_source,
             p_final=entry.p_final,
+            reliability=_reliability_out(service, entry.p_triage),
             escalated=entry.escalated,
             status=view.status,
             case_rows=len(facts.transactions),
