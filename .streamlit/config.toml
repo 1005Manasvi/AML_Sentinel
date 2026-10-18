@@ -1,0 +1,18 @@
+# Dashboard hardening. Streamlit reads this from the working directory (repo root).
+[server]
+headless = true
+address = "127.0.0.1"   # loopback only; put a TLS reverse proxy in front for anything else
+port = 8501
+enableXsrfProtection = true
+enableCORS = true
+maxUploadSize = 1       # MB; the dashboard has no uploads
+
+[browser]
+gatherUsageStats = false   # no telemetry leaves the machine
+
+[client]
+showErrorDetails = "none"  # tracebacks go to the console, never to the browser
+toolbarMode = "minimal"
+
+[runner]
+magicEnabled = false       # no implicit rendering of bare expressions

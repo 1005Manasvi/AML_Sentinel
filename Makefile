@@ -9,7 +9,7 @@ else
 endif
 PY := $(BIN)/python
 
-.PHONY: setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text detect gnn-setup gnn rank sar llm-setup demo reproduce clean
+.PHONY: sample-models setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text detect gnn-setup gnn rank sar llm-setup api dashboard api-key demo reproduce clean
 
 setup:  ## Create venv and install pinned, hash-verified dependencies
 	python -m venv .venv
@@ -41,6 +41,11 @@ security:  ## Static analysis + dependency CVE audit (gitleaks runs via pre-comm
 	$(PY) -m pip_audit --strict --require-hashes -r requirements/base.txt
 
 check: lint typecheck test security
+
+sample-models:  ## Sample only: data, rule baseline and LightGBM, enough for `make run`
+	$(MAKE) sample
+	$(PY) -m aml_sentinel.cli baseline --dataset Sample
+	$(PY) -m aml_sentinel.cli train-tabular --dataset Sample
 
 sample:  ## Regenerate the bundled synthetic sample (seed 42) and its parquet cache
 	$(PY) -m aml_sentinel.cli generate-sample --seed 42
@@ -90,8 +95,20 @@ llm-setup:  ## Optional external SAR drafter (Anthropic SDK); only pseudonymised
 notebook:
 	$(PY) -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_eda.ipynb
 
-run:
-	@echo "API and dashboard arrive in Phase 7." && exit 1
+api:  ## Authenticated API on 127.0.0.1:8000 (needs API_KEYS; serves API_DATASET, default Sample)
+	$(PY) -m aml_sentinel.cli serve --host 127.0.0.1 --port 8000
+
+dashboard:  ## Streamlit analyst dashboard on 127.0.0.1:8501 (talks to the API)
+	$(BIN)/streamlit run src/aml_sentinel/dashboard/app.py
+
+api-key:  ## Print a new key and its API_KEYS entry: make api-key KEY_USER=alice KEY_ROLE=analyst
+	$(PY) -m aml_sentinel.cli new-api-key --user $(KEY_USER) --role $(KEY_ROLE)
+
+KEY_USER ?= analyst1
+KEY_ROLE ?= analyst
+
+run:  ## API + dashboard together (two processes; Ctrl+C stops both)
+	$(MAKE) -j2 api dashboard
 
 train:  ## System 1a: LightGBM + calibration vs baseline (needs `make baseline`)
 	$(PY) -m aml_sentinel.cli train-tabular --dataset Sample
