@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Final
 
@@ -96,6 +97,32 @@ def same_input_lgbm(graphs: dict[str, PeriodGraph], seed: int) -> np.ndarray:
     return np.asarray(model.predict(pair_features(graphs["test"])), dtype=np.float64)
 
 
+def alert_pair_scores(
+    frame: pd.DataFrame, graph: PeriodGraph, gnn_scores: np.ndarray, tx_ids: Sequence[int]
+) -> tuple[np.ndarray, np.ndarray]:
+    """GNN score of each alert's (payer, payee) pair in a period graph.
+
+    Args:
+        frame: Processed transactions.
+        graph: Period graph the scores belong to.
+        gnn_scores: Score per pair of ``graph``.
+        tx_ids: Alert transaction ids.
+
+    Returns:
+        ``(scores, found)``. Alerts whose pair is not in the graph score 0.
+    """
+    pos = pd.Index(frame[Col.TX_ID]).get_indexer(list(tx_ids))
+    src, dst, n_nodes = account_codes(frame)
+    key = src[pos] * n_nodes + dst[pos]
+    pair_key = graph.pair_src * n_nodes + graph.pair_dst
+    order = np.argsort(pair_key)
+    j = np.searchsorted(pair_key[order], key)
+    found = (j < pair_key.size) & (pair_key[order][np.minimum(j, pair_key.size - 1)] == key)
+    scores = np.zeros(len(pos))
+    scores[found] = gnn_scores[order[j[found]]]
+    return scores, found
+
+
 def compare_with_detectors(
     frame: pd.DataFrame, graph: PeriodGraph, gnn_scores: np.ndarray, evidence: pd.DataFrame
 ) -> dict[str, Any]:
@@ -111,15 +138,8 @@ def compare_with_detectors(
         Detector and GNN metrics at the same alert count.
     """
     ev = evidence.loc[evidence["split"] == "test"].reset_index(drop=True)
+    alert_score, found = alert_pair_scores(frame, graph, gnn_scores, ev["tx_id"].tolist())
     pos = pd.Index(frame[Col.TX_ID]).get_indexer(ev["tx_id"])
-    src, dst, n_nodes = account_codes(frame)
-    key = src[pos] * n_nodes + dst[pos]
-    pair_key = graph.pair_src * n_nodes + graph.pair_dst
-    order = np.argsort(pair_key)
-    j = np.searchsorted(pair_key[order], key)
-    found = (j < pair_key.size) & (pair_key[order][np.minimum(j, pair_key.size - 1)] == key)
-    alert_score = np.zeros(len(ev))
-    alert_score[found] = gnn_scores[order[j[found]]]
     y = frame[Col.IS_LAUNDERING].to_numpy()[pos]
     fired = ev["n_findings"].to_numpy() > 0
     n = int(fired.sum())

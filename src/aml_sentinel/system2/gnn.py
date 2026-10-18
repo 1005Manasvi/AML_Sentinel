@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -30,6 +31,7 @@ import numpy.typing as npt
 from sklearn.metrics import average_precision_score
 
 from aml_sentinel.exceptions import ConfigurationError
+from aml_sentinel.integrity import verify_checksum
 from aml_sentinel.system2.gnn_data import PeriodGraph
 
 logger = logging.getLogger(__name__)
@@ -150,6 +152,41 @@ class TrainedGnn:
         with torch.no_grad():
             logits = self.model(*_tensors(graph, self.mean, self.std, self.device))
         return np.asarray(torch.sigmoid(logits).cpu().numpy(), dtype=np.float64)
+
+
+def load_trained_gnn(
+    weights: Path, expected_sha256: str, train: PeriodGraph, cfg: GnnConfig | None = None
+) -> TrainedGnn:
+    """Load saved GraphSAGE weights after checksum verification.
+
+    The node-feature normalisation is not stored with the weights: it is recomputed
+    from the train-period graph, exactly as :func:`train_gnn` computed it.
+
+    Args:
+        weights: ``gnn_sage.safetensors`` written by ``gnn-experiment``.
+        expected_sha256: Checksum recorded in the GNN report.
+        train: Train-period graph (for the normalisation statistics).
+        cfg: Hyperparameters used in training (for the layer width).
+
+    Returns:
+        The model, on CPU or GPU, in evaluation mode.
+
+    Raises:
+        IntegrityError: If the weights do not match the recorded checksum.
+    """
+    from safetensors.torch import load_file
+
+    verify_checksum(weights, expected_sha256)
+    cfg = cfg or GnnConfig()
+    torch = _require_torch()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    mean = train.x.mean(axis=0)
+    std = train.x.std(axis=0)
+    std[std == 0] = 1.0
+    model = build_model(train.x.shape[1], train.edge_attr.shape[1], cfg.hidden).to(device)
+    model.load_state_dict(load_file(str(weights), device=str(device)))
+    model.eval()
+    return TrainedGnn(model, mean, std, device, best_epoch=-1, best_val_ap=float("nan"))
 
 
 def train_gnn(train: PeriodGraph, val: PeriodGraph, cfg: GnnConfig | None = None) -> TrainedGnn:
