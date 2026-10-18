@@ -353,3 +353,74 @@ consequences.
   analyst are the control for that.
 - **Audit:** every generation appends a hash-chained record (who, what, when, case,
   source, grounded, number of issues) to the git-ignored `data/audit/audit.jsonl`.
+
+## ADR-020: The analyst queue is ranked by System 1 p_triage
+
+- **Context:** Phase 6 measured that adding System 2 evidence to the score made
+  test ranking slightly worse: PR-AUC 0.651 for the final score vs 0.674 for System 1
+  `p_triage`, with a 95% CI of [-0.050, +0.002] (ADR-018).
+- **Decision (owner's choice):** the queue is ordered by System 1 `p_triage`. System 2
+  findings are shown in each case as **evidence** and never change the order. The
+  final combined score appears in case detail, labelled informational.
+- **Where p_triage comes from:** the System 1b fused probability when
+  `<dataset>.system1b_scores.parquet` exists (HI-Small:
+  `fused[lgbm_all+laya[head_only]]`, over the 4,000 sampled test alerts Laya scored).
+  Otherwise it is calibrated LightGBM over the System 1a queue (top 1% of the split,
+  at least 200 alerts). The source is shown in the API response and the dashboard.
+- **Escalation:** the same rule as System 1b, the 95th percentile of validation
+  `p_triage`. Alerts below it are `auto_closed`. System 2 evidence is attached only
+  to escalated alerts, matching the architecture.
+- **Measured consequence on the bundled sample:** the isotonic calibrator's top bin
+  is 0.5. The validation 95th percentile lands on that tie, so only 4 of 200 test
+  alerts escalate (2%, not 5%), and they tie on score (ordered by tx id). On HI-Small the measured
+  test share is 6.5% (261 of 4,000). This is
+  the coarse calibration of a tiny dataset, reported as is.
+
+## ADR-021: API and dashboard design
+
+- **Authentication:** API keys rather than JWT. There is no identity provider to
+  issue tokens, and keys are simpler to audit.
+  - Keys are 256-bit random values from `aml-sentinel new-api-key`.
+  - The server holds only SHA-256 digests (`API_KEYS=user:role:digest`). A fast hash
+    is fine for high-entropy keys.
+  - A presented key is compared with every digest using `hmac.compare_digest`, with
+    no early exit.
+  - Roles: `analyst` < `admin`. Only admins read the audit log.
+- **Rate limiting:** an in-process token bucket per user. Failed authentication
+  spends a per-client-IP budget, which slows key guessing. It is not shared across
+  processes (see SECURITY.md).
+- **Transport hardening:** pure-ASGI middleware adds security headers and enforces
+  a body-size limit, including on streamed bodies. There is also a `Host` allowlist
+  and an exact-origin CORS allowlist (wildcards are rejected at settings load).
+  `/docs` and `/openapi.json` are disabled, because they would be unauthenticated.
+  Validation errors never echo input.
+- **Case store:** stdlib `sqlite3` with parameterised statements only, not an ORM
+  dependency. Triggers make both tables append-only, so an edited SAR is a new
+  version. The hash-chained audit log stays the tamper-evident record. Case views,
+  SAR generations and edits, and decisions are audited. Notes are stored, and only
+  their length is audited.
+- **SAR review:** an edited draft is always re-stamped on the server. It is
+  re-grounded after mapping real ids back to tokens, and unknown account-like ids
+  are flagged. Approving is refused (409) unless the latest draft exists and is
+  fully grounded.
+- **POST /score (owner's choice: hybrid):** the scorer recomputes past-only features
+  by appending the transaction to history at or before its timestamp, using the
+  training code path. A test checks this reproduces the training score to 1e-12.
+  It takes about 0.1 s on the 6.3k-row sample. Above `API_SCORE_MAX_HISTORY_ROWS`
+  (100k by default) it returns 501; on HI-Small (5.1M rows) it would take minutes.
+  Production needs an online feature store. Scored transactions are never added
+  to history, so clients cannot poison other accounts' features. A test checks
+  that fabricated future rows do not change a score.
+- **Found while building:** the processed frame stores ids as pandas categoricals,
+  so a new account id would have silently become NaN. The scorer converts ids to
+  strings, and a new-account test covers it.
+- **Dashboard:** Streamlit, as a pure API client with the analyst's own key, so roles
+  and audit attribution are unchanged. Untrusted text appears only in plain-text
+  widgets. Dynamic text in Markdown widgets is escaped, which blocks image-beacon
+  exfiltration. Graph labels are HTML-escaped, because plotly renders some HTML.
+  An AST test bans `unsafe_allow_html`, `st.markdown`, `st.write`, `st.html` and
+  `st.cache*` in the dashboard. Streamlit telemetry is off, it binds to loopback,
+  and error details are hidden.
+- **Not done in Phase 7:** Docker. Docker is not installed on the development
+  machine, so the image and compose file are deferred to Phase 9, where they can be
+  tested.

@@ -4,8 +4,9 @@ AML Sentinel is a real-time anti-money-laundering transaction monitoring system.
 uses a fast System 1 triage stage and a slow System 2 investigation stage, and
 drafts SARs for human review.
 
-> **Status:** Phase 1 (scaffold and data) is complete. Results, the dashboard and
-> full documentation arrive in later phases.
+> **Status:** Phases 1–7 are complete: data, baselines, System 1 and 2, final
+> ranking, SAR drafting, the authenticated API and the analyst dashboard. Evaluation
+> hardening (Phase 8) and the one-command demo (Phase 9) follow.
 >
 > **Synthetic data only.** Results on IBM AMLworld do not prove real-world
 > performance.
@@ -52,6 +53,18 @@ make check     # ruff, mypy --strict, pytest, bandit, pip-audit
 
 On Windows without GNU make, run the commands listed under each target in the
 `Makefile`.
+
+### Run the API and dashboard (bundled sample, no Kaggle data needed)
+
+```bash
+make sample-models                      # synthetic sample + rule baseline + LightGBM (about 1 min)
+make api-key KEY_USER=alice KEY_ROLE=admin     # prints the key once + its API_KEYS entry
+# put the API_KEYS entry in .env (only the digest is stored), then:
+make run                                # API on 127.0.0.1:8000, dashboard on 127.0.0.1:8501
+```
+
+Sign in to the dashboard with the printed key. `API_DATASET=HI-Small` serves the
+IBM results once they have been produced (`make rank`).
 
 ## Data
 
@@ -265,7 +278,39 @@ evidence. It is measured on the same 4,000 test alerts
 - The drafts are not committed, because they quote rows of the IBM dataset; run
   `make rank sar` to generate them locally.
 
-Full results arrive in Phases 7–8.
+### API and analyst dashboard (Phase 7)
+
+- **Queue ranking:** by System 1 `p_triage` (owner's decision, ADR-020), because it
+  ranks better than the final combined score (PR-AUC 0.674 vs 0.651). System 2
+  findings are shown in each case as evidence. Alerts below the validation-fitted
+  escalation threshold are auto-closed.
+- **Endpoints:** `/score`, `/alerts`, `/cases/{id}`, SAR generate/edit, and
+  approve/dismiss/escalate with a note. Every endpoint except `/health` needs an API
+  key, and `/audit` needs the admin role. See `aml_sentinel.api.app`.
+- **Dashboard:** ranked queue, interactive transaction graph (plotly), System 2
+  evidence, SAR editor with live grounding results, decisions with notes, and an
+  audit-log view with hash-chain verification (admin).
+- **Workflow controls:** edited SARs are always re-stamped *DRAFT - requires analyst
+  review* and re-checked against the case data. A draft with unverified accounts,
+  amounts or dates cannot be approved. Every view, draft and decision is audited.
+
+Measured on this machine (single process, CPU):
+
+| What | Sample (6.3k rows) | HI-Small (5.1M rows) |
+|---|---:|---:|
+| API startup (load + case index + queue) | 0.4 s | 11 s |
+| Case detail (case build + detectors) | 72 ms | 295 ms |
+| `POST /score`, a new transaction (past-only features) | ≈90 ms | refused (501) above 100k history rows |
+| Alerts in queue / escalated | 200 / 4 (2.0%) | 4,000 / 261 (6.5%) |
+
+- The escalation threshold is fitted on validation, so the test share is measured, not
+  forced: 6.5% on HI-Small, and only 2% on the sample. On the sample the isotonic
+  calibrator's top bin is 0.5, and the validation threshold falls on that tie
+  (ADR-020).
+- `POST /score` recomputes past-only features over the whole history, because there
+  is no online feature store. That is why it is capped (ADR-021).
+
+Phase 8 adds the full evaluation.
 
 ## Limitations
 
@@ -276,5 +321,5 @@ The full list is written in Phase 8. For now, note these:
 
 ## Docs
 
-- [SECURITY.md](SECURITY.md)
-- [docs/DECISIONS.md](docs/DECISIONS.md)
+- [SECURITY.md](SECURITY.md): threat model, including the API and dashboard
+- [docs/DECISIONS.md](docs/DECISIONS.md): ADR-001 to ADR-021

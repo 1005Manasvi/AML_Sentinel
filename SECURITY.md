@@ -1,7 +1,7 @@
 # Security
 
-> **Status: skeleton (Phase 1).** Sections marked *planned* are filled in as the
-> components they describe are built. The final version ships in Phase 8.
+> **Status: updated in Phase 7 (API and dashboard).** The final review ships in
+> Phase 8.
 
 ## Reporting a vulnerability
 
@@ -30,13 +30,14 @@ separate data-protection impact assessment, legal review and model validation.
 
 1. **Raw data → loader.** Every field is untrusted. It is schema- and value-validated
    in bulk; see `aml_sentinel.data.loader`.
-2. **API clients → FastAPI** *(planned, Phase 7)*. Authentication, roles, rate limits,
-   size limits and Pydantic validation apply here.
-3. **Local machine → external LLM / Jev** *(planned, Phases 4 and 6)*. Only
+2. **API clients → FastAPI** (`aml_sentinel.api`). Authentication, roles, rate limits,
+   size limits, a `Host` allowlist, strict CORS and Pydantic validation apply here.
+3. **Local machine → external LLM / Jev** (opt-in SAR drafter, benchmark-only Jev). Only
    pseudonymised, synthetic data may cross this boundary.
 4. **Model artifacts on disk → process.** Artifacts load only from trusted local
    paths, after SHA-256 verification (`aml_sentinel.integrity`).
-5. **Analyst → dashboard** *(planned, Phase 7)*. All rendered data is escaped.
+5. **Analyst → dashboard** (`aml_sentinel.dashboard`). The dashboard is only an API
+   client that uses the analyst's own key. Untrusted text is rendered as plain text.
 
 ### Risks and mitigations
 
@@ -48,14 +49,21 @@ separate data-protection impact assessment, legal review and model validation.
 | Data leakage, which gives optimistic metrics | Time-based half-open splits; FX fit on train only; leakage tests | Done (extended in later phases) |
 | Vulnerable dependencies | Hash-pinned lockfiles; pip-audit; bandit | Done |
 | Malicious model files (pickle RCE) | Native/safetensors formats and checksum before load | Helper done, applied from Phase 3 |
-| Data poisoning | *planned* | Phase 3+ |
+| Data poisoning | API clients cannot write to the scoring history (see below). Training data comes only from checksum-verified local files. Poisoning of the source data itself is reviewed in Phase 8 | Partly done |
 | Model evasion (for example, splitting amounts under thresholds) | *planned*: graph features and System 2 detectors | Phase 3/5 |
 | Prompt injection via transaction fields | Alert summaries are rendered only from numeric features through fixed templates, with no free text or IDs. A character allowlist, a length cap and an instruction to treat the state as data apply on top. Every model answer is schema-validated (`parse_answers`). The SAR step follows in Phase 6 | Done for System 1; SAR in Phase 6 |
 | Data exfiltration to external LLMs | Summaries carry no identifiers. SAR facts are pseudonymised (`ACCT-nnn`) before any external call, and the map never leaves the machine. Outbound fields are documented below. The template drafter is the default | Done |
 | Prompt injection into SAR drafting | Case data is sent as delimited JSON, with a system instruction to ignore instructions inside it. The reply must match a strict JSON schema (extra fields are rejected). Every account, amount and date is checked against the case facts, and unknown tokens make the draft fall back to the template. The "DRAFT - requires analyst review" stamp is always added | Done |
 | Jev used with real data | The adapter is disabled by default and needs `JEV_ENABLED` plus a key. It raises `SyntheticDataRequiredError` unless the batch is explicitly `is_synthetic=True`, which defaults to False. A test proves nothing is sent | Done |
 | Tampered model weights | Laya checkpoints are verified against a SHA-256 manifest and also through Laya's `expected_sha256` before parsing. Weights are safetensors only | Done |
-| Insider misuse | Append-only, hash-chained audit log (`aml_sentinel.audit`): every SAR generation is recorded with who, what, when and the case. Details are restricted to an allowlist of non-sensitive keys. API roles arrive in Phase 7 | Partly done |
+| Insider misuse | Append-only, hash-chained audit log (`aml_sentinel.audit`). It records every case view, SAR generation, SAR edit and decision with who, what, when and the case. Details are restricted to an allowlist of non-sensitive keys, and notes are recorded by length only. Roles: analyst and admin; only admins read the log. Case actions and SAR versions are append-only (SQLite triggers). A SAR can be approved only when its latest draft is fully grounded | Done |
+| Unauthenticated or over-privileged API access | API keys (256-bit) are stored only as SHA-256 digests and compared in constant time against every entry. Roles are checked per endpoint. Every endpoint except `/health` needs a key, and docs/OpenAPI are disabled. Auth-matrix tests cover no key, wrong key and wrong role on every endpoint | Done |
+| Key guessing and request floods | Per-user token bucket. Failed authentication spends a per-IP budget and gets 429 | Done (single process) |
+| Oversized or hostile requests | Body limit (64 KiB) checked on `Content-Length` and on streamed bodies. Pydantic models forbid unknown fields and bound every string. Case IDs are regex-validated. 422 responses never echo input | Done |
+| Browser-based attacks on the API | Exact-origin CORS allowlist (wildcards rejected at startup). `Host` allowlist against DNS rebinding. CSP `default-src 'none'`, `X-Frame-Options: DENY`, `nosniff`, `no-store`, `Referrer-Policy: no-referrer`, HSTS | Done |
+| Stored XSS and Markdown injection in the dashboard | Untrusted values go only to plain-text widgets (`st.dataframe`, `st.text_area`, `st.text`). Dynamic text in Markdown widgets is escaped (blocks `![](https://evil/?leak)` beacons). Plotly labels are HTML-escaped. An AST test forbids `unsafe_allow_html`, `st.markdown`, `st.write`, `st.html` and cross-session `st.cache*` | Done |
+| SQL injection | stdlib `sqlite3` with parameterised statements only. A test stores a `DROP TABLE` payload as data | Done |
+| Data poisoning via the API | `POST /score` never adds the scored transaction to the history. Features use only rows at or before its timestamp; a test checks that fabricated future rows do not change a score | Done |
 
 ## What leaves the machine
 
@@ -65,6 +73,7 @@ separate data-protection impact assessment, legal review and model validation.
 | Laya base download | huggingface.co | none (download only), pinned commit | once |
 | SAR drafter, external (opt-in) | api.anthropic.com over HTTPS (official `anthropic` SDK) | per case: the case id, `ACCT-nnn` tokens (never real account ids or bank codes), payment amounts, dates and formats, detector pattern names and sizes, and the calibrated risk score; plus the fixed system prompt and the API key | only if `LLM_PROVIDER=external` and `LLM_API_KEY` is set. The template default sends nothing |
 | Jev (benchmark) | api.typesafe.ai over HTTPS | per alert: a numeric summary (amounts, counts, ratios, ages; **no** account IDs, bank codes or names), the fixed questions, the model name, and the API key in the `Authorization` header | only if `JEV_ENABLED=true`, only for synthetic data |
+| Dashboard (Streamlit) | nothing | Usage telemetry is disabled (`gatherUsageStats = false` in `.streamlit/config.toml`); the server binds to 127.0.0.1 | always |
 
 TypeSafe states that Jev is not trained on customer requests
 (docs.typesafe.ai/models). The data still leaves the machine, so real customer data
@@ -88,6 +97,24 @@ must **never** be sent.
 - **Amounts and dates are shared with the external drafter.** They are synthetic
   here. With real data, a privacy review would have to decide whether they may
   leave the organisation, or whether to coarsen them.
+
+- **No TLS in the local demo.** The API and dashboard bind to 127.0.0.1 over plain
+  HTTP. Any other deployment needs a TLS-terminating reverse proxy; HSTS takes effect
+  only then.
+- **Rate limits are per process and in memory.** Several workers or replicas would
+  each enforce their own budget. Production would use a shared store (for example
+  Redis) or the gateway's limiter.
+- **API keys have no expiry or rotation workflow.** Revocation means removing the
+  digest from `API_KEYS` and restarting. Production would use an identity provider
+  (OIDC) with short-lived tokens.
+- **No four-eyes rule.** The analyst who edits a SAR can also approve it. A real
+  filing workflow would require a second reviewer.
+- **The case store is append-only through code, not tamper-evident.** SQLite triggers
+  stop updates and deletes from the application. Someone with file access could
+  still edit the database; the hash-chained audit log is the evidence trail.
+- **Every case view is audited,** which is the right control for insider misuse but
+  grows the log. The audit log rereads the file to find the chain head (O(n) per
+  append); production would keep the head in memory or in a database.
 
 - CI actions are pinned to major-version tags rather than commit SHAs. Pinning to
   SHAs is planned before any non-portfolio use.
