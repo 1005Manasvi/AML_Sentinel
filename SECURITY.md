@@ -1,7 +1,7 @@
 # Security
 
-> **Status: updated in Phase 7 (API and dashboard).** The final review ships in
-> Phase 8.
+> **Status: final review (Phase 8).** Every risk below states what is done and what
+> is not. Scan results are at the end.
 
 ## Reporting a vulnerability
 
@@ -49,8 +49,8 @@ separate data-protection impact assessment, legal review and model validation.
 | Data leakage, which gives optimistic metrics | Time-based half-open splits; FX fit on train only; leakage tests | Done (extended in later phases) |
 | Vulnerable dependencies | Hash-pinned lockfiles; pip-audit; bandit | Done |
 | Malicious model files (pickle RCE) | Native/safetensors formats and checksum before load | Helper done, applied from Phase 3 |
-| Data poisoning | API clients cannot write to the scoring history (see below). Training data comes only from checksum-verified local files. Poisoning of the source data itself is reviewed in Phase 8 | Partly done |
-| Model evasion (for example, splitting amounts under thresholds) | *planned*: graph features and System 2 detectors | Phase 3/5 |
+| Data poisoning | API clients cannot write to the scoring history (see below). Training data comes only from checksum-verified local files, and every model artifact is checksum-verified before loading. **Not addressed:** the training labels themselves are trusted. There is no label-noise robustness test and no outlier screening of training rows; with real data, label provenance and access to the training store would be controls | Partly done |
+| Model evasion (for example, splitting amounts under thresholds) | Behaviour features (trailing velocity and volume, graph snapshots) do not depend on one threshold, and the System 2 structuring detector looks at near-threshold deposits from distinct senders. **Not addressed:** no adversarial evaluation was run. An adaptive launderer can learn fixed thresholds: for example, deposits below 80% of 10k USD evade the structuring detector by construction. The model also leans on simulator artifacts such as payment format (ADR-010), which an adversary could avoid | Partly done; not evaluated adversarially |
 | Prompt injection via transaction fields | Alert summaries are rendered only from numeric features through fixed templates, with no free text or IDs. A character allowlist, a length cap and an instruction to treat the state as data apply on top. Every model answer is schema-validated (`parse_answers`). The SAR step follows in Phase 6 | Done for System 1; SAR in Phase 6 |
 | Data exfiltration to external LLMs | Summaries carry no identifiers. SAR facts are pseudonymised (`ACCT-nnn`) before any external call, and the map never leaves the machine. Outbound fields are documented below. The template drafter is the default | Done |
 | Prompt injection into SAR drafting | Case data is sent as delimited JSON, with a system instruction to ignore instructions inside it. The reply must match a strict JSON schema (extra fields are rejected). Every account, amount and date is checked against the case facts, and unknown tokens make the draft fall back to the template. The "DRAFT - requires analyst review" stamp is always added | Done |
@@ -116,7 +116,33 @@ must **never** be sent.
   grows the log. The audit log rereads the file to find the chain head (O(n) per
   append); production would keep the head in memory or in a database.
 
-- CI actions are pinned to major-version tags rather than commit SHAs. Pinning to
-  SHAs is planned before any non-portfolio use.
+- **Model artifacts are checksummed, not signed.** A checksum proves an artifact is
+  unchanged since the manifest was written, but whoever can write the manifest can
+  replace both. Production would sign artifacts and keep a model registry with
+  approvals.
 - Lockfiles are resolved on Windows. Platform-specific transitive dependencies may
   need a re-lock on Linux. See `docs/DECISIONS.md`.
+
+## Supply chain
+
+- Dependencies are pinned with hashes (`requirements/*.txt`) and installed with
+  `--require-hashes`.
+- pip-audit runs on **every** lockfile (base, dev, laya, gnn, llm) in CI, in
+  pre-commit and in `make security`.
+- CI actions are pinned to full commit SHAs, with the version in a comment, and a
+  test fails if any `uses:` line references a tag.
+
+## Security scan results (Phase 8)
+
+These were run on the final Phase 8 tree with the locked tool versions.
+
+| Scan | Scope | Result |
+|---|---|---|
+| bandit (`bandit -c pyproject.toml -r src`) | all of `src/` | no issues |
+| pip-audit `--strict --require-hashes` | base, dev, laya, gnn, llm lockfiles | no known vulnerabilities |
+| gitleaks (pre-commit, `--all-files`) | the working tree | no leaks |
+| Auth matrix tests | every API endpoint × no key / wrong key / wrong role | pass |
+| Injection tests | SQL payloads stored as data; Markdown/HTML escaping; SAR grounding of hostile edits | pass |
+
+A clean scan means these tools found nothing. It does not prove the absence of
+vulnerabilities. No penetration test or external review has been done.

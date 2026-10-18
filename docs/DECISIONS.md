@@ -218,7 +218,7 @@ consequences.
     ROC-AUC 0.61 zero-shot and 0.54 head-only, against LightGBM's 0.88.
   - Head-only fine-tuning gives no significant improvement (bootstrap CI includes 0).
   - Stacking Laya with LightGBM adds +0.02 to +0.03 PR-AUC. That gain is significant
-    on row resampling, but small, and it costs about 300–440 ms of GPU time per alert.
+    on row resampling, but small, and it costs about 300–450 ms of GPU time per alert.
 - **Interpretation:**
   - With the encoder frozen, Laya's representation of these numeric summaries is
     fixed, and the head cannot extract much signal from it.
@@ -230,7 +230,7 @@ consequences.
   The default System 1 score is fusion with Laya when a verified checkpoint exists,
   and LightGBM alone otherwise. The README and model card state plainly that Laya
   underperforms LightGBM on its own.
-- **Latency note:** the 296–442 ms per alert measured in the full run is higher than
+- **Latency note:** the 304–449 ms per alert measured in the latest full run (an earlier run measured 296–442 ms; model outputs were identical) is higher than
   the 121 ms smoke-test figure. That smoke test used batches of 32 with only four
   distinct states. The full-run numbers are the ones reported.
 
@@ -424,3 +424,67 @@ consequences.
 - **Not done in Phase 7:** Docker. Docker is not installed on the development
   machine, so the image and compose file are deferred to Phase 9, where they can be
   tested.
+
+## ADR-022: Smoothed isotonic is available; validation still chooses plain isotonic
+
+- **Problem:** isotonic calibration gives a block that holds only positives a
+  probability of exactly 1.0. On HI-Small, 82 test alerts display a final score of
+  1.000, which overstates certainty (ADR-018).
+- **Change:** a Beta-smoothed isotonic option. Each block is shrunk towards the base
+  rate by 2 pseudo-observations (fixed in advance, not tuned), and monotonicity is
+  re-imposed, so no output is ever exactly 0 or 1. It serialises as JSON breakpoints
+  like the other calibrators.
+- **Owner's choice (cheap layers only):** smoothing is a candidate for the final
+  ranker, which refits from cached scores in seconds. The Laya-fused `p_triage` keeps
+  its calibrator, because changing it means re-running Laya (about 2.5 h of GPU).
+  System 1a/1b keep their two-candidate set, so `make reproduce` regenerates their
+  reported numbers unchanged.
+- **Measured selection (held-out validation ECE):**
+  - Final ranker: isotonic 0.0158, Platt 0.0168, smoothed 0.0173. Plain isotonic
+    stays, and the final scores are unchanged.
+  - System 1a full split: isotonic 0.00009, smoothed 0.00010, Platt 0.00015.
+  - On test, smoothed would have been slightly better (ECE 0.00034 vs 0.00036), and
+    raw LightGBM better still (0.00027). That is not used to override the
+    validation choice, which would be selecting on test.
+- **Rolling recalibration (promised in ADR-011):** calibrators refitted on the last
+  validation day only were **worse** on test (isotonic 0.00040, Platt 0.00043) than
+  those fitted on both days. With two days of validation, a shorter window adds
+  variance without tracking the drift.
+- **What the user sees instead:** the API attaches each alert's *measured
+  reliability*, the observed laundering rate of test alerts in the same `p_triage`
+  band (from `reports/evaluation`). Bands are attached only when they were measured
+  for the very score the queue uses.
+
+## ADR-023: Phase 8 evaluation design and what it found
+
+- **Two universes, never mixed:**
+  - Rules vs LightGBM on every test transaction (862,792 on HI-Small).
+  - The cumulative ablation on the 4,000 sampled test alerts that Laya scored.
+    "Rules only" inside the queue is a ranking by rule score among alerts LightGBM
+    already selected. It shows what each signal adds there, not the rules' standalone
+    value.
+- **Ablation method:** each step adds inputs to the previous one and refits one
+  validation stacker plus calibrator, scored once on test. Δ is a paired bootstrap
+  against the previous step (row resampling, so optimistic).
+  - The "+ Laya" step uses only Laya's escalate probability, because its expected
+    risk and benign probability were not persisted. That is why it differs slightly
+    from the production fusion.
+  - Jev was not run, and its row says so.
+  - The GNN row is flagged as lookahead (end-of-period graphs).
+- **Findings (HI-Small):**
+  - LightGBM carries almost all the ranking power inside the queue: PR-AUC
+    0.116 → 0.664.
+  - Laya adds +0.010 [+0.006, +0.015], and graph evidence +0.011 [−0.008, +0.031],
+    which is not significant. Graph evidence is positive here but was negative when
+    stacked on the fused score (ADR-018), so its sign depends on how it is combined.
+    The honest reading is "no reliable ranking gain".
+  - The lookahead GNN adds +0.020.
+  - False positives in the top 5% barely move after LightGBM (49–52). The later
+    gains are deeper in the ranking, not in the escalation budget.
+  - Attempt overlap: 39% of test positives continue attempts seen before the test
+    period (PR-AUC 0.61), and 22% start new documented attempts (0.49). The 39% that
+    are undocumented are mostly missed (queue recall 26%, PR-AUC 0.009). The model
+    has learned documented simulator patterns much better than "laundering" in
+    general.
+- **Latency:** measured on the development machine and labelled with its source.
+  Laya and detector timings are reused from their Phase 4 and 5 runs, and say so.

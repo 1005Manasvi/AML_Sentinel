@@ -4,9 +4,10 @@ AML Sentinel is a real-time anti-money-laundering transaction monitoring system.
 uses a fast System 1 triage stage and a slow System 2 investigation stage, and
 drafts SARs for human review.
 
-> **Status:** Phases 1–7 are complete: data, baselines, System 1 and 2, final
-> ranking, SAR drafting, the authenticated API and the analyst dashboard. Evaluation
-> hardening (Phase 8) and the one-command demo (Phase 9) follow.
+> **Status:** Phases 1–8 are complete: data, baselines, System 1 and 2, final
+> ranking, SAR drafting, the authenticated API, the analyst dashboard, and the
+> evaluation and hardening pass. The one-command demo and portfolio packaging
+> (Phase 9) follow.
 >
 > **Synthetic data only.** Results on IBM AMLworld do not prove real-world
 > performance.
@@ -144,8 +145,8 @@ and is not yet measured. Jev was not run (disabled, no key).
 |---|---:|---:|---:|---:|---:|---:|
 | lgbm_all | 0.649 | 0.879 | 95.0% | 0.023 | n/a / n/a | n/a |
 | lgbm_no_shortcuts | 0.591 | 0.846 | 94.0% | 0.014 | n/a / n/a | n/a |
-| laya[zero_shot] | 0.091 | 0.614 | 7.0% | 0.458 | 94.2% / 0.24 | 442 |
-| laya[head_only] | 0.096 | 0.535 | 15.0% | 0.409 | 66.1% / 0.21 | 296 |
+| laya[zero_shot] | 0.091 | 0.614 | 7.0% | 0.458 | 94.2% / 0.24 | 449 |
+| laya[head_only] | 0.096 | 0.535 | 15.0% | 0.409 | 66.1% / 0.21 | 304 |
 | fused[lgbm_all+laya[head_only]] | 0.674 | 0.881 | 96.0% | 0.021 | n/a | n/a |
 | fused[lgbm_no_shortcuts+laya[head_only]] | 0.613 | 0.857 | 91.0% | 0.012 | n/a | n/a |
 
@@ -179,7 +180,7 @@ RTX 3050 Laptop). Full report: [reports/system1b/](reports/system1b/).
 - **Laya's raw probabilities are badly calibrated** (ECE of about 0.41–0.46). Its
   README says it is over-confident as shipped.
 - **The only gain is in fusion, and it is small:** +0.02 to +0.03 PR-AUC when Laya's
-  outputs are stacked with LightGBM. That costs about 300–440 ms of GPU time per
+  outputs are stacked with LightGBM. That costs about 300–450 ms of GPU time per
   alert. With the no-shortcut model, zero-shot Laya adds nothing significant.
 
 ### System 2: graph detectors and GNN experiment (Phase 5)
@@ -262,8 +263,9 @@ evidence. It is measured on the same 4,000 test alerts
 - The detectors' value is the evidence they put in a case and a SAR, not ranking
   power.
 - **Known issue:** the isotonic calibrator's top bin is 1.0, so the highest-risk
-  alerts display a risk of 1.000, which overstates certainty. This is scheduled for
-  calibration hardening in Phase 8.
+  alerts display a risk of 1.000, which overstates certainty. Phase 8 added a
+  smoothed alternative, but validation did not choose it. The API therefore shows
+  each score's measured reliability instead (ADR-022).
 
 **SAR drafting.** `make sar` drafts SARs for the top test alerts.
 - **Local template by default:** nothing leaves the machine.
@@ -310,16 +312,134 @@ Measured on this machine (single process, CPU):
 - `POST /score` recomputes past-only features over the whole history, because there
   is no online feature store. That is why it is capped (ADR-021).
 
-Phase 8 adds the full evaluation.
+### Evaluation and hardening (Phase 8)
+
+`make evaluate` (or `aml-sentinel evaluate --dataset HI-Small`) writes
+[reports/evaluation/](reports/evaluation/). Every number below comes from that
+report, with seed 42.
+
+**Ablation inside the alert queue.** These are the same 4,000 test alerts as Phase 4
+(271 laundering, 6.8%). Each row adds inputs to the row above and refits one
+validation stacker. Δ is a paired bootstrap against the row above.
+
+| Step | PR-AUC | Precision@100 | False positives in top 5% | Δ PR-AUC [95% CI] |
+|---|---:|---:|---:|---|
+| rules only (re-ranking the queue) | 0.116 | 13.0% | 170 | |
+| + LightGBM | 0.664 | 96.0% | 49 | +0.548 [+0.501, +0.595] |
+| + Laya (head-only) | 0.675 | 96.0% | 50 | +0.010 [+0.006, +0.015] |
+| + Jev (benchmark) | not run | | | disabled, no key |
+| + graph evidence | 0.686 | 93.0% | 50 | +0.011 [−0.008, +0.031] |
+| + GNN (**lookahead**, not deployable) | 0.706 | 95.0% | 49 | +0.020 [+0.007, +0.034] |
+
+![Ablation PR curves](reports/evaluation/HI-Small_ablation_pr.png)
+
+- **LightGBM does almost all the work.** After it, the false positives in the
+  escalation budget barely move (49–52). The later gains are deeper in the ranking.
+- **Graph evidence is not a reliable ranking signal.** It is +0.011 here, not
+  significant, and was −0.023 when stacked on the fused score (Phase 6).
+- **The GNN's gain uses future information** within the test period, so it cannot
+  be claimed for a real-time system (ADR-016).
+
+**Who the model finds (attempt overlap).**
+
+- 39% of test positives continue laundering attempts that started before the test
+  period (PR-AUC 0.61). A further 22% start new documented attempts (PR-AUC 0.49).
+- The **39% that belong to no documented pattern are mostly missed**: 26% recall in
+  the alert queue against 85–87% for documented attempts, and PR-AUC 0.009.
+- So the model has learned the simulator's documented patterns, not laundering in
+  general.
+
+**Calibration.**
+
+- Validation chose plain isotonic over Platt and the new smoothed isotonic, for both
+  System 1a and the final ranker.
+- Refitting on only the last validation day ("rolling" recalibration) made test ECE
+  worse (0.00040 vs 0.00036).
+- In the top decile of the queue, `p_triage` averages 0.56 while 46.5% of those
+  alerts are laundering. The API now shows that measured band reliability next to
+  each score (ADR-022).
+
+**Per-stage latency** on this machine (AMD laptop CPU with 16 logical CPUs, RTX 3050 Laptop
+GPU, single process):
+
+| Stage | Latency |
+|---|---:|
+| Past-only features (batch) | 7.7 µs per transaction |
+| Rule engine (batch) | 2.9 µs per transaction |
+| LightGBM inference (batch) | 8.4 µs per transaction |
+| Laya head-only (GPU, Phase 4 run) | 304 ms per alert |
+| System 2 case + detectors (Phase 5 run) | 17 ms median, 36 ms p95 per alert |
+| SAR draft, local template + grounding | 0.4 ms per case |
+| `POST /score`, one new transaction (sample, 6.3k history rows) | 67 ms |
+
+**Hardening.**
+
+- CI actions are pinned to commit SHAs, enforced by a test.
+- pip-audit runs on every lockfile.
+- bandit, pip-audit and gitleaks are all clean (see [SECURITY.md](SECURITY.md)).
+- New docs: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
+  [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
 
 ## Limitations
 
-The full list is written in Phase 8. For now, note these:
+**Data and validity**
 
-- Synthetic data only.
-- Typology labels cover only part of the positives.
+- **Synthetic data only.** Every number comes from IBM AMLworld or the project's own
+  generator. Nothing here has been validated on real transactions, and simulator
+  artifacts help the models: payment format and cross-currency flags are shortcuts
+  (ADR-010).
+- **Labels are incomplete and partly undocumented.** About 39% of HI-Small test
+  positives belong to no documented pattern, and the model finds them far less
+  often than documented ones (see the evaluation's attempt-overlap section).
+- **Attempts cross split boundaries.** Some test positives continue laundering
+  attempts that started in training, so part of the test performance is recognising
+  known actors (ADR-003).
+- **Short test window:** two days, with about 950 HI-Small positives and 271 in the
+  alert sample. The bootstrap intervals resample rows, not attempts, so they are
+  optimistic.
+
+**Modelling**
+
+- **Calibration does not transfer cleanly over time.** Validation-fitted calibrators
+  made test ECE worse on the full split (ADR-011). The highest-scored alerts can
+  display 1.000 (ADR-022), so the API shows each score's measured test reliability
+  next to it.
+- **Laya adds little.** It is close to random alone and adds +0.01 to +0.03 PR-AUC in
+  fusion, at about 300 ms of GPU time per alert. The full fine-tune is unmeasured.
+- **System 2 evidence explains alerts but does not reliably improve ranking.** The
+  GNN gain in the ablation relies on lookahead and is not deployable in real time.
+- **No adversarial evaluation.** Fixed thresholds (for example, structuring at
+  80–100% of 10k USD) can be learned and avoided.
+
+**Fairness and de-risking**
+
+- The data has no customer attributes, so fairness across protected groups **cannot
+  be measured** here. In real deployments, monitoring systems tend to concentrate
+  alerts on certain customer segments, corridors and cash-intensive businesses. That
+  can lead to unfair account closures ("de-risking") and exclusion from financial
+  services.
+- The synthetic "high-risk jurisdiction" rule (ADR-008) shows how geography-based
+  rules flag people by where they bank. Any real list would need legal and fairness
+  review.
+- Scores are prioritisation aids. Every decision stays with a human analyst, and
+  every SAR draft is stamped for review.
+
+**What production would additionally require**
+
+- Model risk management: independent validation, documented assumptions, change
+  control and ongoing performance and drift monitoring (for example SR 11-7 style).
+- Regulatory validation of the scenarios and thresholds, and evidence of coverage
+  for the institution's own risk assessment.
+- Streaming infrastructure and an online feature store (the API's `/score` rebuilds
+  features from history and is capped at 100k rows).
+- Per-jurisdiction SAR formats and filing workflows (FinCEN, goAML and others), with
+  a four-eyes approval rule.
+- Identity integration (OIDC), TLS, signed model artifacts, WORM anchoring of the
+  audit log, and data-protection reviews for any external LLM use.
 
 ## Docs
 
 - [SECURITY.md](SECURITY.md): threat model, including the API and dashboard
-- [docs/DECISIONS.md](docs/DECISIONS.md): ADR-001 to ADR-021
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): components, data flow, artifacts, runtime
+- [docs/MODEL_CARD.md](docs/MODEL_CARD.md): intended use, metrics, calibration, failure modes, fairness
+- [docs/DECISIONS.md](docs/DECISIONS.md): ADR-001 to ADR-023
