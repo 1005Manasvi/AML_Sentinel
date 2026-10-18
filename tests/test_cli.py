@@ -42,3 +42,18 @@ def test_main_reports_bad_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     monkeypatch.setenv("JEV_ENABLED", "true")
     assert main(["prepare-data"]) == 2
     assert not transactions_path(tmp_path, DatasetName.HI_SMALL).exists()
+
+
+def test_new_api_key_prints_a_usable_entry(capsys: pytest.CaptureFixture[str]) -> None:
+    from aml_sentinel.api.auth import ApiKeyStore, Principal, Role
+
+    assert main(["new-api-key", "--user", "alice", "--role", "admin"]) == 0
+    out = capsys.readouterr().out.splitlines()
+    key = out[0].rsplit(" ", 1)[1]
+    entry = out[1].removeprefix("API_KEYS entry: ")
+    assert key not in entry
+    assert ApiKeyStore.parse(entry).authenticate(key) == Principal("alice", Role.ADMIN)
+
+
+def test_new_api_key_rejects_bad_user_ids() -> None:
+    assert main(["new-api-key", "--user", "alice smith"]) == 2

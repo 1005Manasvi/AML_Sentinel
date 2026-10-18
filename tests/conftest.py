@@ -5,10 +5,25 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import pandas as pd
 import pytest
+from fastapi.testclient import TestClient
 
+from aml_sentinel.api.app import create_app
+from aml_sentinel.api.auth import hash_api_key
+from aml_sentinel.api.queue import AlertQueue, build_queue
+from aml_sentinel.api.scoring import TransactionScorer, build_scorer
+from aml_sentinel.api.service import CaseService
+from aml_sentinel.api.store import CaseStore
+from aml_sentinel.audit import AuditLog
+from aml_sentinel.cli import generate_sample, prepare_data
 from aml_sentinel.config import Settings, load_settings
-from aml_sentinel.data.schema import RAW_HEADER
+from aml_sentinel.data.processed import load_processed
+from aml_sentinel.data.schema import RAW_HEADER, DatasetName
+from aml_sentinel.models.lgbm import LgbmParams
+from aml_sentinel.models.system1a_report import system1a_command
+from aml_sentinel.rules.baseline import baseline_command
+from aml_sentinel.system2.cases import CaseIndex
 
 HEADER = ",".join(RAW_HEADER)
 EUR_USD = 1.10  # USD per EUR planted in the training period
@@ -184,5 +199,86 @@ def _isolate_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "VAL_END",
         "TEST_END",
         "ENVIRONMENT",
+        "API_KEYS",
+        "API_DATASET",
+        "API_CORS_ORIGINS",
+        "API_ALLOWED_HOSTS",
+        "API_RATE_LIMIT_PER_MINUTE",
+        "API_MAX_REQUEST_BYTES",
+        "API_SCORE_MAX_HISTORY_ROWS",
+        "DASHBOARD_API_URL",
     ):
         monkeypatch.delenv(var, raising=False)
+
+
+# ---------------------------------------------------------------- API / dashboard
+FAST_LGBM = LgbmParams(max_rounds=30, early_stopping_rounds=5, min_child_samples=20, num_threads=1)
+ANALYST_KEY = "amls_test-analyst-key-0000000000000000000000000"
+ADMIN_KEY = "amls_test-admin-key-00000000000000000000000000000"
+
+
+@dataclass(frozen=True)
+class ServedSample:
+    """The bundled sample after the System 1a pipeline, ready to be served."""
+
+    settings: Settings
+    frame: pd.DataFrame
+    index: CaseIndex
+    queue: AlertQueue
+    scorer: TransactionScorer | None
+
+
+@pytest.fixture(scope="session")
+def served_sample(tmp_path_factory: pytest.TempPathFactory) -> ServedSample:
+    """Generate, prepare and train the sample once per test session (about 10 s)."""
+    root = tmp_path_factory.mktemp("served")
+    # Every field the API reads is passed explicitly: this fixture is session-scoped,
+    # so the per-test environment isolation above does not apply to it.
+    settings = load_settings(
+        _env_file=None,
+        data_dir=root / "data",
+        reports_dir=root / "reports",
+        models_dir=root / "models",
+        api_dataset=DatasetName.SAMPLE,
+        api_allowed_hosts=("testserver",),
+        api_cors_origins=("http://localhost:8501",),
+        api_keys=f"ana:analyst:{hash_api_key(ANALYST_KEY)},adm:admin:{hash_api_key(ADMIN_KEY)}",
+        api_rate_limit_per_minute=10_000,
+        llm_provider="template",
+    )
+    generate_sample(settings, seed=42)
+    prepare_data(settings, DatasetName.SAMPLE)
+    baseline_command(settings, DatasetName.SAMPLE)
+    system1a_command(
+        settings,
+        DatasetName.SAMPLE,
+        params=LgbmParams(
+            max_rounds=30, early_stopping_rounds=5, min_child_samples=20, num_threads=1
+        ),
+    )
+    frame = load_processed(settings.processed_dir, DatasetName.SAMPLE)
+    index = CaseIndex(frame)
+    queue = build_queue(settings, DatasetName.SAMPLE, frame, index)
+    scorer, _ = build_scorer(settings, DatasetName.SAMPLE, frame)
+    return ServedSample(settings, frame, index, queue, scorer)
+
+
+def make_service(served: ServedSample, tmp_path: Path) -> CaseService:
+    """A service over the shared sample with its own, empty store and audit log."""
+    return CaseService(
+        queue=served.queue,
+        index=served.index,
+        store=CaseStore(tmp_path / "cases.sqlite3"),
+        audit=AuditLog(tmp_path / "audit.jsonl"),
+        scorer=served.scorer,
+    )
+
+
+@pytest.fixture
+def service(served_sample: ServedSample, tmp_path: Path) -> CaseService:
+    return make_service(served_sample, tmp_path)
+
+
+@pytest.fixture
+def client(served_sample: ServedSample, service: CaseService) -> TestClient:
+    return TestClient(create_app(served_sample.settings, service=service))

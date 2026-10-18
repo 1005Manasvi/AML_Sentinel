@@ -4,6 +4,8 @@ Usage::
 
     aml-sentinel generate-sample --seed 42
     aml-sentinel prepare-data --dataset HI-Small
+    aml-sentinel new-api-key --user alice --role analyst
+    aml-sentinel serve --port 8000
 
 ``generate-sample`` writes the small synthetic dataset to ``data/sample/``.
 
@@ -11,6 +13,11 @@ Usage::
 window only, adds USD amounts and typology labels, and writes a parquet cache plus a
 JSON manifest (row counts, FX rates, SHA-256 checksums of inputs and output) to
 ``data/processed/``.
+
+``new-api-key`` prints a fresh key once, plus the ``API_KEYS`` entry (its SHA-256
+digest) to configure on the server. The key itself is never stored.
+
+``serve`` starts the authenticated API (see :mod:`aml_sentinel.api.app`).
 """
 
 from __future__ import annotations
@@ -22,6 +29,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from aml_sentinel.api.auth import ApiKeyStore, Role, generate_api_key, hash_api_key
 from aml_sentinel.config import Settings, load_settings
 from aml_sentinel.data.fx import add_usd_amounts, estimate_usd_rates
 from aml_sentinel.data.loader import load_transactions, patterns_path, transactions_path
@@ -161,7 +169,50 @@ def _build_parser() -> argparse.ArgumentParser:
             choices=list(DatasetName),
             default=DatasetName.HI_SMALL,
         )
+    key = sub.add_parser("new-api-key", help="create an API key and its API_KEYS entry")
+    key.add_argument("--user", required=True, help="user id recorded in the audit log")
+    key.add_argument("--role", type=Role, choices=list(Role), default=Role.ANALYST)
+    serve = sub.add_parser("serve", help="start the authenticated API (API_DATASET)")
+    serve.add_argument("--host", default="127.0.0.1", help="bind address (default: loopback)")
+    serve.add_argument("--port", type=int, default=8000)
     return parser
+
+
+def new_api_key(user: str, role: Role) -> str:
+    """Create a key and the matching ``API_KEYS`` entry.
+
+    Args:
+        user: User id.
+        role: Role to grant.
+
+    Returns:
+        Two lines: the key (shown once) and the ``user:role:digest`` entry.
+
+    Raises:
+        ConfigurationError: If ``user`` is not a valid identifier.
+    """
+    key = generate_api_key()
+    entry = f"{user}:{role.value}:{hash_api_key(key)}"
+    ApiKeyStore.parse(entry)  # validates the user id with the server's own rules
+    return f"API key (store it now; it is not saved anywhere): {key}\nAPI_KEYS entry: {entry}\n"
+
+
+def serve(settings: Settings, host: str, port: int) -> None:  # pragma: no cover - blocks
+    """Run the API with uvicorn until interrupted.
+
+    Args:
+        settings: Settings.
+        host: Bind address.
+        port: Port.
+    """
+    import uvicorn
+
+    from aml_sentinel.api.app import create_app
+
+    app = create_app(settings)
+    # log_config=None keeps uvicorn on our JSON root logger; server_header=False
+    # stops advertising the server software.
+    uvicorn.run(app, host=host, port=port, log_config=None, server_header=False)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -175,6 +226,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     args = _build_parser().parse_args(argv)
     try:
+        if args.command == "new-api-key":
+            # Needs no settings, so a key can be made before .env exists.
+            sys.stdout.write(new_api_key(args.user, args.role))
+            return 0
         settings = load_settings()
         configure_logging(settings.log_level, json_output=settings.log_json)
         if args.command == "generate-sample":
@@ -199,6 +254,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             rank_command(settings, args.dataset)
         elif args.command == "draft-sar":
             draft_command(settings, args.dataset)
+        elif args.command == "serve":
+            serve(settings, args.host, args.port)
     except AmlSentinelError as exc:
         # Our exceptions carry safe messages; anything else is a bug and should
         # surface with a traceback.

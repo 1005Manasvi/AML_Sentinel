@@ -54,6 +54,8 @@ def test_no_source_or_test_file_is_ignored() -> None:
         ".env",
         "weights.pkl",
         "data/audit/audit.jsonl",
+        "data/cases/cases.sqlite3",
+        "reports/sar/HI-Small/CASE-1.md",
     ],
 )
 def test_artifacts_and_secrets_are_ignored(path: str) -> None:
