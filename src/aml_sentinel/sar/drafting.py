@@ -139,7 +139,7 @@ def template_narrative(facts: CaseFacts) -> str:
         f"{_money(a.amount_usd)} by {a.payment_format}.",
     ]
     if facts.risk_score is not None:
-        lines.append(f"Calibrated System 1/2 risk score: {facts.risk_score:.2f}.")
+        lines.append(f"Calibrated model risk score: {facts.risk_score:.2f}.")
     total = round(sum(t.amount_usd for t in facts.transactions), 2)
     dates = sorted(facts.dates)
     lines.append(

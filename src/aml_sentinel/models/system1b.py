@@ -79,6 +79,20 @@ class AlertSet:
     queue_size: int
 
 
+def queue_size(n: int, *, rate: float = ALERT_RATE, min_alerts: int = MIN_ALERTS) -> int:
+    """Number of top-scored transactions that form a split's alert queue.
+
+    Args:
+        n: Transactions in the split.
+        rate: Fraction of the split forming the queue.
+        min_alerts: Minimum queue size (capped at ``n``).
+
+    Returns:
+        Queue size, at least 1.
+    """
+    return max(round(rate * n), min(min_alerts, n), 1)
+
+
 def build_alert_sets(
     frame: pd.DataFrame,
     scores: pd.DataFrame,
@@ -115,7 +129,7 @@ def build_alert_sets(
         in_split = (scores["split"].astype("string") == split).to_numpy()
         idx = np.flatnonzero(in_split)
         p = scores[TABULAR["lgbm_all"]].to_numpy()[idx]
-        k = max(round(rate * idx.size), min(min_alerts, idx.size), 1)
+        k = queue_size(idx.size, rate=rate, min_alerts=min_alerts)
         queue = idx[np.argsort(-p, kind="stable")[:k]]
         chosen = np.sort(rng.choice(queue, size=min(sample, queue.size), replace=False))
         rows = position[chosen].astype(np.int64)

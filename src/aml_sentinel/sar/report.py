@@ -39,7 +39,7 @@ def audit_log(settings: Settings) -> AuditLog:
     Returns:
         The audit log.
     """
-    return AuditLog(settings.data_dir / "audit" / "audit.jsonl")
+    return AuditLog(settings.audit_path)
 
 
 def _top_alerts(settings: Settings, dataset: DatasetName, top: int) -> pd.DataFrame:

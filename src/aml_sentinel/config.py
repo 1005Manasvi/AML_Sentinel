@@ -13,16 +13,20 @@ Security note:
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Final, Literal
 
 from pydantic import Field, SecretStr, ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from aml_sentinel.data.schema import DatasetName
 from aml_sentinel.exceptions import ConfigurationError
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+# scheme://host[:port] and nothing else: a wildcard or path would widen CORS.
+_ORIGIN_RE: Final = re.compile(r"^https?://[A-Za-z0-9.-]+(:\d{1,5})?$")
 
 
 class Settings(BaseSettings):
@@ -43,6 +47,17 @@ class Settings(BaseSettings):
         llm_model: Model id for the external SAR drafter (Anthropic).
         jev_enabled: Enable the Jev benchmark adapter (synthetic data only).
         jev_api_key: Key for the Jev hosted API.
+        api_keys: API credentials as comma-separated ``user:role:sha256hex`` entries.
+            Only hashes are configured; plaintext keys never touch config or disk.
+        api_dataset: Dataset the API serves.
+        api_cors_origins: Exact browser origins allowed by CORS (no wildcards).
+        api_allowed_hosts: ``Host`` header allowlist (blocks DNS rebinding).
+        api_rate_limit_per_minute: Requests per minute per user (and per client IP
+            for failed authentication).
+        api_max_request_bytes: Largest accepted request body.
+        api_score_max_history_rows: ``POST /score`` recomputes past-only features over
+            the loaded history; above this size it is refused rather than slow.
+        dashboard_api_url: Base URL the dashboard calls.
     """
 
     model_config = SettingsConfigDict(
@@ -72,11 +87,25 @@ class Settings(BaseSettings):
     jev_enabled: bool = False
     jev_api_key: SecretStr | None = None
 
+    api_keys: SecretStr | None = None
+    api_dataset: DatasetName = DatasetName.SAMPLE
+    api_cors_origins: tuple[str, ...] = ("http://localhost:8501", "http://127.0.0.1:8501")
+    api_allowed_hosts: tuple[str, ...] = ("localhost", "127.0.0.1")
+    api_rate_limit_per_minute: int = Field(default=120, ge=1, le=10_000)
+    api_max_request_bytes: int = Field(default=64 * 1024, ge=1024, le=10 * 1024 * 1024)
+    api_score_max_history_rows: int = Field(default=100_000, ge=0)
+    dashboard_api_url: str = Field(default="http://127.0.0.1:8000", pattern=r"^https?://[^\s]+$")
+
     @model_validator(mode="after")
     def _check_consistency(self) -> Settings:
-        """Fail fast on missing secrets and impossible split boundaries."""
+        """Fail fast on missing secrets, impossible split boundaries and open CORS."""
         if not self.train_end < self.val_end < self.test_end:
             raise ValueError("split boundaries must satisfy TRAIN_END < VAL_END < TEST_END")
+        for origin in self.api_cors_origins:
+            if not _ORIGIN_RE.match(origin):
+                raise ValueError("API_CORS_ORIGINS entries must be exact http(s) origins")
+        if "*" in self.api_allowed_hosts:
+            raise ValueError("API_ALLOWED_HOSTS must not contain a wildcard")
         if self.llm_provider == "external" and not _has_secret(self.llm_api_key):
             raise ValueError("LLM_API_KEY is required when LLM_PROVIDER=external")
         if self.jev_enabled and not _has_secret(self.jev_api_key):
@@ -97,6 +126,16 @@ class Settings(BaseSettings):
     def processed_dir(self) -> Path:
         """Directory holding derived, regenerable data (parquet caches)."""
         return self.data_dir / "processed"
+
+    @property
+    def cases_db(self) -> Path:
+        """SQLite file holding analyst actions and SAR versions (git-ignored)."""
+        return self.data_dir / "cases" / "cases.sqlite3"
+
+    @property
+    def audit_path(self) -> Path:
+        """Append-only, hash-chained audit log (git-ignored)."""
+        return self.data_dir / "audit" / "audit.jsonl"
 
 
 def _has_secret(value: SecretStr | None) -> bool:

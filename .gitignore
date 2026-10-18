@@ -5,6 +5,8 @@ data/raw/*
 /data/interim/
 # Audit log stays local: it records who did what (append-only, hash-chained).
 /data/audit/
+# Analyst case notes and SAR versions (API case store); may quote dataset rows.
+/data/cases/
 # Root-anchored: an unanchored "models/" would also hide src/aml_sentinel/models.
 /models/
 /artifacts/
