@@ -28,6 +28,7 @@ from aml_sentinel.data.schema import DatasetName
 from aml_sentinel.evaluation.ranking import bootstrap_ap_difference
 from aml_sentinel.exceptions import DataNotFoundError, DataValidationError
 from aml_sentinel.integrity import sha256_file
+from aml_sentinel.models.calibration import FITTERS_WITH_SMOOTHING
 from aml_sentinel.models.fusion import FusionModel, stack_inputs
 from aml_sentinel.models.system1b import escalation_metrics, score_metrics
 
@@ -117,7 +118,9 @@ def run_final_ranking(
         raise DataValidationError("final ranking needs validation and test alerts")
     x_val = final_inputs(val[triage_col].to_numpy(), val)
     x_test = final_inputs(test[triage_col].to_numpy(), test)
-    model, p_val = FusionModel.fit_oof(x_val, val["y"].to_numpy())
+    # The final layer may also pick smoothed isotonic, which never outputs exactly 1.0
+    # (ADR-022); the choice is made by validation cross-fitting.
+    model, p_val = FusionModel.fit_oof(x_val, val["y"].to_numpy(), fitters=FITTERS_WITH_SMOOTHING)
     p_test = model.predict(x_test)
     y_test, y_val = test["y"].to_numpy(), val["y"].to_numpy()
     p_triage_test = test[triage_col].to_numpy()
@@ -135,6 +138,7 @@ def run_final_ranking(
             "escalation": escalation_metrics(y_val, p_val, y_test, p_test),
             "coefficients": model.explain(),
             "calibrator": model.calibrator.method,
+            "calibrator_selection_val_ece": model.selection,
         },
         "graph_evidence_gain": bootstrap_ap_difference(y_test, p_test, p_triage_test, seed=seed),
     }

@@ -18,7 +18,7 @@ The model serialises to JSON: coefficients, scaling and calibrator breakpoints.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
@@ -29,6 +29,7 @@ from sklearn.linear_model import LogisticRegression
 from aml_sentinel.exceptions import DataValidationError
 from aml_sentinel.models.calibration import (
     FITTERS,
+    Fitter,
     IsotonicCalibrator,
     PlattCalibrator,
     calibrator_from_dict,
@@ -90,6 +91,8 @@ class FusionModel:
         coef: Logistic-regression coefficients on standardised inputs.
         intercept: Logistic-regression intercept.
         calibrator: Calibrator fitted on out-of-fold stacker scores.
+        selection: Held-out validation ECE of every calibrator candidate (the
+            evidence behind the choice of ``calibrator``).
     """
 
     inputs: tuple[str, ...]
@@ -98,6 +101,7 @@ class FusionModel:
     coef: tuple[float, ...]
     intercept: float
     calibrator: PlattCalibrator | IsotonicCalibrator
+    selection: dict[str, float] = field(default_factory=dict)
 
     @staticmethod
     def _fit_lr(x: FloatArray, y: FloatArray) -> tuple[FloatArray, FloatArray, FloatArray, float]:
@@ -116,25 +120,32 @@ class FusionModel:
         return np.asarray(1.0 / (1.0 + np.exp(-z)), dtype=np.float64)
 
     @classmethod
-    def fit(cls, inputs: pd.DataFrame, y: npt.ArrayLike) -> FusionModel:
+    def fit(
+        cls, inputs: pd.DataFrame, y: npt.ArrayLike, *, fitters: dict[str, Fitter] | None = None
+    ) -> FusionModel:
         """Fit the stacker and its calibrator (see :meth:`fit_oof`).
 
         Args:
             inputs: Validation-alert inputs, time-ordered.
             y: Labels.
+            fitters: Calibrator candidates (default: Platt and isotonic).
 
         Returns:
             The fitted fusion model.
         """
-        return cls.fit_oof(inputs, y)[0]
+        return cls.fit_oof(inputs, y, fitters=fitters)[0]
 
     @classmethod
-    def fit_oof(cls, inputs: pd.DataFrame, y: npt.ArrayLike) -> tuple[FusionModel, FloatArray]:
+    def fit_oof(
+        cls, inputs: pd.DataFrame, y: npt.ArrayLike, *, fitters: dict[str, Fitter] | None = None
+    ) -> tuple[FusionModel, FloatArray]:
         """Fit the stacker and its calibrator on validation alerts (in time order).
 
         Args:
             inputs: Output of :func:`stack_inputs` for validation alerts, time-ordered.
             y: Labels.
+            fitters: Calibrator candidates, chosen by validation cross-fitting
+                (default: Platt and isotonic).
 
         Returns:
             ``(model, oof)``: the model refitted on all rows, plus calibrated
@@ -158,8 +169,9 @@ class FusionModel:
                 raise DataValidationError("a fusion fold has only one class")
             params = cls._fit_lr(x[fit_idx], t[fit_idx])
             oof[pred_idx] = cls._raw(x[pred_idx], *params)
-        method, _ = select_method(oof, t)
-        calibrator = FITTERS[method](oof, t)
+        candidates = FITTERS if fitters is None else fitters
+        method, selection = select_method(oof, t, fitters=candidates)
+        calibrator = candidates[method](oof, t)
         mean, scale, coef, intercept = cls._fit_lr(x, t)
         model = cls(
             inputs=tuple(inputs.columns),
@@ -168,6 +180,7 @@ class FusionModel:
             coef=tuple(float(v) for v in coef),
             intercept=intercept,
             calibrator=calibrator,
+            selection=selection,
         )
         return model, calibrator.transform(oof)
 
@@ -207,6 +220,7 @@ class FusionModel:
             "coef": list(self.coef),
             "intercept": self.intercept,
             "calibrator": self.calibrator.to_dict(),
+            "calibrator_selection": dict(self.selection),
         }
 
     @classmethod
@@ -232,6 +246,7 @@ class FusionModel:
             coef=tuple(float(v) for v in data["coef"]),
             intercept=float(data["intercept"]),
             calibrator=calibrator_from_dict(dict(data["calibrator"])),
+            selection={str(k): float(v) for k, v in data.get("calibrator_selection", {}).items()},
         )
 
     def explain(self) -> dict[str, float]:

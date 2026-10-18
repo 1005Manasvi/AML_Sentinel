@@ -7,6 +7,13 @@ on test.
 Calibrators serialise to plain JSON (two floats for Platt, breakpoints for isotonic),
 so loading one never unpickles anything.
 
+Smoothed isotonic (Phase 8): plain isotonic regression gives a block that holds only
+positives a probability of exactly 1.0, which overstates certainty for the riskiest
+alerts (ADR-018). The smoothed variant shrinks each block towards the base rate with a
+weak Beta prior of :data:`SMOOTHING_STRENGTH` pseudo-observations, then re-imposes
+monotonicity, so no output is ever exactly 0 or 1. Whether it is used is decided by
+validation cross-fitting like every other calibrator choice, never by test results.
+
 ECE note: at 0.1% prevalence, equal-width bins put almost every row in the first
 bin, so the headline ECE uses equal-mass ("quantile") bins. Equal-width ECE is
 reported alongside it.
@@ -17,7 +24,7 @@ from __future__ import annotations
 import itertools
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Literal, Protocol
+from typing import Any, Final, Literal, Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -29,6 +36,9 @@ from aml_sentinel.exceptions import ConfigurationError, DataValidationError
 FloatArray = npt.NDArray[np.float64]
 BinStrategy = Literal["quantile", "uniform"]
 _EPS = 1e-7
+# Two pseudo-observations at the base rate per isotonic block: a weak prior, fixed in
+# advance (not tuned), that only matters for small blocks such as the top one.
+SMOOTHING_STRENGTH: Final = 2.0
 
 
 class Calibrator(Protocol):
@@ -121,29 +131,44 @@ class IsotonicCalibrator:
     Attributes:
         x: Increasing raw-score breakpoints.
         y: Calibrated probability at each breakpoint.
-        method: Always ``"isotonic"``.
+        prior_strength: Beta-prior pseudo-observations per block (0 = plain isotonic).
+        method: ``"isotonic"``, or ``"isotonic_smoothed"`` when ``prior_strength > 0``.
     """
 
     x: tuple[float, ...]
     y: tuple[float, ...]
+    prior_strength: float = 0.0
     method: str = field(default="isotonic", init=False)
 
+    def __post_init__(self) -> None:
+        """Name the method after the smoothing setting."""
+        if self.prior_strength > 0:
+            object.__setattr__(self, "method", "isotonic_smoothed")
+
     @classmethod
-    def fit(cls, scores: npt.ArrayLike, y: npt.ArrayLike) -> IsotonicCalibrator:
+    def fit(
+        cls, scores: npt.ArrayLike, y: npt.ArrayLike, *, prior_strength: float = 0.0
+    ) -> IsotonicCalibrator:
         """Fit on validation scores and labels.
 
         Args:
             scores: Raw scores in [0, 1].
             y: Binary labels.
+            prior_strength: Pseudo-observations at the base rate added to every block.
 
         Returns:
             The fitted calibrator.
         """
         s, t = _check(scores, y)
         iso = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip").fit(s, t)
+        xs = np.asarray(iso.X_thresholds_, dtype=np.float64)
+        ys = np.asarray(iso.y_thresholds_, dtype=np.float64)
+        if prior_strength > 0:
+            ys = _smooth_blocks(ys, np.asarray(iso.predict(s)), float(t.mean()), prior_strength)
         return cls(
-            x=tuple(float(v) for v in iso.X_thresholds_),
-            y=tuple(float(v) for v in iso.y_thresholds_),
+            x=tuple(float(v) for v in xs),
+            y=tuple(float(v) for v in ys),
+            prior_strength=float(prior_strength),
         )
 
     def transform(self, scores: npt.ArrayLike) -> FloatArray:
@@ -163,7 +188,25 @@ class IsotonicCalibrator:
         Returns:
             ``{"method": "isotonic", "x": [...], "y": [...]}``.
         """
-        return {"method": self.method, "x": list(self.x), "y": list(self.y)}
+        out: dict[str, Any] = {"method": self.method, "x": list(self.x), "y": list(self.y)}
+        if self.prior_strength > 0:
+            out["prior_strength"] = self.prior_strength
+        return out
+
+
+def _smooth_blocks(
+    ys: FloatArray, fitted: FloatArray, base_rate: float, strength: float
+) -> FloatArray:
+    """Shrink isotonic block values towards the base rate, keeping them monotone."""
+    blocks = np.unique(ys)
+    idx = np.clip(np.searchsorted(blocks, fitted), 0, blocks.size - 1)
+    counts = np.bincount(idx, minlength=blocks.size).astype(np.float64)
+    shrunk = (blocks * counts + strength * base_rate) / (counts + strength)
+    # Small blocks shrink more than large ones, which can reverse their order; a
+    # weighted isotonic pass restores monotonicity.
+    mono = IsotonicRegression().fit(blocks, shrunk, sample_weight=counts + strength)
+    smoothed = np.asarray(mono.predict(blocks), dtype=np.float64)
+    return smoothed[np.searchsorted(blocks, ys)]
 
 
 def calibrator_from_dict(data: dict[str, Any]) -> PlattCalibrator | IsotonicCalibrator:
@@ -181,22 +224,36 @@ def calibrator_from_dict(data: dict[str, Any]) -> PlattCalibrator | IsotonicCali
     try:
         if data["method"] == "platt":
             return PlattCalibrator(a=float(data["a"]), b=float(data["b"]))
-        if data["method"] == "isotonic":
+        if data["method"] in ("isotonic", "isotonic_smoothed"):
             x = tuple(float(v) for v in data["x"])
             y = tuple(float(v) for v in data["y"])
             if len(x) != len(y) or not x or any(b < a for a, b in itertools.pairwise(x)):
                 raise ValueError("bad breakpoints")
-            return IsotonicCalibrator(x=x, y=y)
+            strength = float(data.get("prior_strength", 0.0))
+            if (data["method"] == "isotonic_smoothed") != (strength > 0):
+                raise ValueError("method and prior_strength disagree")
+            return IsotonicCalibrator(x=x, y=y, prior_strength=strength)
     except (KeyError, TypeError, ValueError) as exc:
         raise ConfigurationError(f"invalid calibrator: {type(exc).__name__}") from None
     raise ConfigurationError("unknown calibration method")
 
 
 Fitter = Callable[[npt.ArrayLike, npt.ArrayLike], PlattCalibrator | IsotonicCalibrator]
+
+
+def _fit_smoothed(scores: npt.ArrayLike, y: npt.ArrayLike) -> IsotonicCalibrator:
+    return IsotonicCalibrator.fit(scores, y, prior_strength=SMOOTHING_STRENGTH)
+
+
+# The System 1 default. It is kept unchanged so that re-running Phases 3-4 reproduces
+# their reported numbers; the final ranker also considers the smoothed variant.
 FITTERS: dict[str, Fitter] = {"platt": PlattCalibrator.fit, "isotonic": IsotonicCalibrator.fit}
+FITTERS_WITH_SMOOTHING: dict[str, Fitter] = {**FITTERS, "isotonic_smoothed": _fit_smoothed}
 
 
-def select_method(scores: npt.ArrayLike, y: npt.ArrayLike) -> tuple[str, dict[str, float]]:
+def select_method(
+    scores: npt.ArrayLike, y: npt.ArrayLike, *, fitters: dict[str, Fitter] | None = None
+) -> tuple[str, dict[str, float]]:
     """Choose Platt vs isotonic by time-ordered 2-fold cross-fitting on validation.
 
     Each method is fitted on one half of the validation rows (in time order) and scored
@@ -206,15 +263,17 @@ def select_method(scores: npt.ArrayLike, y: npt.ArrayLike) -> tuple[str, dict[st
     Args:
         scores: Validation raw scores, in time order.
         y: Validation labels.
+        fitters: Candidates (default :data:`FITTERS`).
 
     Returns:
         ``(best_method, {method: mean held-out ECE})``.
     """
     s, t = _check(scores, y)
+    fitters = FITTERS if fitters is None else fitters
     half = s.size // 2
     folds = [(slice(0, half), slice(half, None)), (slice(half, None), slice(0, half))]
     results: dict[str, float] = {}
-    for name, fit in FITTERS.items():
+    for name, fit in fitters.items():
         eces = []
         for fit_idx, eval_idx in folds:
             if np.min(t[fit_idx]) == np.max(t[fit_idx]) or t[eval_idx].size == 0:

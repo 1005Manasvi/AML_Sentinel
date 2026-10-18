@@ -159,7 +159,12 @@
       "ev_max_fan_in": -0.8091855508865856,
       "ev_max_structuring": 0.2968021209474761
     },
-    "calibrator": "isotonic"
+    "calibrator": "isotonic",
+    "calibrator_selection_val_ece": {
+      "platt": 0.016843536903497713,
+      "isotonic": 0.015796986814151592,
+      "isotonic_smoothed": 0.017335026152847835
+    }
   },
   "graph_evidence_gain": {
     "diff": -0.022914912051967606,
@@ -167,5 +172,5 @@
     "ci_high": 0.0018585759602510242,
     "p_not_better": 0.962
   },
-  "model_sha256": "19cce8d247ec8f17447ce0313dc5dcfdda3a87e2bdf6286af22e9f66b0d79b60"
+  "model_sha256": "68c84dfd9c026d2de2aa62bdb80df959d5b4365ac19cd3c92996ad51c6f172d3"
 }
