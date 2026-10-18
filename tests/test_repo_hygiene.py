@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess  # nosec B404 - fixed git invocation, no user input
 from pathlib import Path
@@ -71,3 +72,11 @@ def test_gitignore_has_no_trailing_comments() -> None:
         stripped = line.strip()
         if stripped and not stripped.startswith("#"):
             assert " #" not in stripped, f"trailing comment breaks pattern: {line!r}"
+
+
+def test_ci_actions_are_pinned_to_commit_shas() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    uses = re.findall(r"uses:\s*(\S+)", workflow)
+    assert uses
+    for ref in uses:
+        assert re.fullmatch(r"[\w.-]+/[\w.-]+@[0-9a-f]{40}", ref), ref

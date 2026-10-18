@@ -21,7 +21,7 @@ repos:
     rev: v2.7.3
     hooks:
       - id: pip-audit
-        args: ["--strict", "--require-hashes", "-r", "requirements/base.txt"]
+        args: ["--strict", "--require-hashes", "--disable-pip", "-r", "requirements/base.txt", "-r", "requirements/dev.txt", "-r", "requirements/laya.txt", "-r", "requirements/gnn.txt", "-r", "requirements/llm.txt"]
         files: ^requirements/.*\.txt$
 
   # Python tooling runs from the project venv so hooks use exactly the versions in
