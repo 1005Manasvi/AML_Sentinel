@@ -9,7 +9,7 @@ else
 endif
 PY := $(BIN)/python
 
-.PHONY: sample-models setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text detect gnn-setup gnn rank sar llm-setup api dashboard api-key demo reproduce clean
+.PHONY: sample-models setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text detect gnn-setup gnn rank sar evaluate llm-setup api dashboard api-key demo reproduce clean
 
 setup:  ## Create venv and install pinned, hash-verified dependencies
 	python -m venv .venv
@@ -38,7 +38,7 @@ test:
 
 security:  ## Static analysis + dependency CVE audit (gitleaks runs via pre-commit/CI)
 	$(PY) -m bandit -c pyproject.toml -r src
-	$(PY) -m pip_audit --strict --require-hashes -r requirements/base.txt
+	for lock in base dev laya gnn llm; do $(PY) -m pip_audit --strict --require-hashes --disable-pip -r requirements/$$lock.txt || exit 1; done
 
 check: lint typecheck test security
 
@@ -86,6 +86,10 @@ gnn:  ## System 2 experiment: GraphSAGE pair classifier vs LightGBM and detector
 rank:  ## Final calibrated ranking (System 1 p_triage + System 2 evidence)
 	$(PY) -m aml_sentinel.cli rank --dataset HI-Small
 
+evaluate:  ## Phase 8: ablation, calibration study, attempt overlap, latency -> reports/evaluation/
+	$(PY) -m aml_sentinel.cli evaluate --dataset Sample
+	$(PY) -m aml_sentinel.cli evaluate --dataset HI-Small
+
 sar:  ## Draft review-stamped, grounding-checked SARs for the top test alerts (template by default)
 	$(PY) -m aml_sentinel.cli draft-sar --dataset HI-Small
 
@@ -126,6 +130,7 @@ reproduce:  ## Grows phase by phase until it regenerates every README figure/tab
 	$(MAKE) detect
 	$(MAKE) rank
 	$(MAKE) sar
+	$(MAKE) evaluate
 	$(MAKE) notebook
 
 clean:

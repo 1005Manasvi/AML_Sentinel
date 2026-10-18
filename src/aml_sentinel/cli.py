@@ -37,6 +37,7 @@ from aml_sentinel.data.patterns import TYPOLOGY, attach_typology, load_patterns
 from aml_sentinel.data.schema import Col, DatasetName
 from aml_sentinel.data.splits import SplitName, TimeSplit, assert_no_future_rows
 from aml_sentinel.data.synthetic import SyntheticConfig, generate, write_dataset
+from aml_sentinel.evaluation.report import evaluate_command
 from aml_sentinel.exceptions import AmlSentinelError
 from aml_sentinel.integrity import sha256_file
 from aml_sentinel.logging_utils import configure_logging
@@ -161,6 +162,7 @@ def _build_parser() -> argparse.ArgumentParser:
         ("gnn-experiment", "System 2 experiment: GraphSAGE pair classifier vs LightGBM"),
         ("rank", "Final calibrated ranking: System 1 p_triage + System 2 evidence"),
         ("draft-sar", "Draft grounded SARs (review-stamped) for the top test alerts"),
+        ("evaluate", "Phase 8 evaluation: ablation, calibration, overlap, latency"),
     ):
         cmd = sub.add_parser(name, help=help_text)
         cmd.add_argument(
@@ -254,6 +256,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             rank_command(settings, args.dataset)
         elif args.command == "draft-sar":
             draft_command(settings, args.dataset)
+        elif args.command == "evaluate":
+            evaluate_command(settings, args.dataset)
         elif args.command == "serve":
             serve(settings, args.host, args.port)
     except AmlSentinelError as exc:
