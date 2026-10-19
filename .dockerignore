@@ -1,0 +1,11 @@
+# Allowlist: the image needs only the lockfile, source, Streamlit config and sample.
+*
+!requirements/base.txt
+!pyproject.toml
+!LICENSE
+!README.md
+!.streamlit/
+!src/
+!data/sample/
+**/__pycache__
+**/*.py[cod]

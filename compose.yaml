@@ -1,0 +1,20 @@
+# docker compose up --build   ->  dashboard http://localhost:8501, API http://localhost:8000
+# The sign-in keys are printed in the container output (`docker compose logs demo`).
+services:
+  demo:
+    build: .
+    image: aml-sentinel-demo:1.0.0
+    # Published on the host's loopback only: nothing is reachable from the network.
+    ports:
+      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8501:8501"
+    environment:
+      ENVIRONMENT: dev
+      LOG_JSON: "true"
+      # Optional: pass your own digests instead of minted demo keys.
+      API_KEYS: ${API_KEYS:-}
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp
+    restart: "no"
