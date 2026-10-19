@@ -5,7 +5,7 @@ explains them with graph evidence and drafts grounded SARs for analyst review. O
 synthetic IBM AMLworld data it matches the rule baseline's recall with 99% fewer
 false positives, and every number here is measured, including where it did not work.**
 
-[![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml)
+[![CI](https://github.com/1005Manasvi/AML_Sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/1005Manasvi/AML_Sentinel/actions/workflows/ci.yml)
 ![coverage](https://img.shields.io/badge/coverage-96.8%25-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
@@ -42,7 +42,7 @@ laundering), seed 42. Details, figures and caveats: [docs/RESULTS.md](docs/RESUL
 ## Quickstart
 
 ```bash
-git clone https://github.com/<OWNER>/<REPO>.git && cd <REPO>
+git clone https://github.com/1005Manasvi/AML_Sentinel.git && cd AML_Sentinel
 make setup   # venv + hash-verified dependencies + pre-commit hooks
 make demo    # rebuild the bundled sample's models, start API + dashboard (ready in ~15 s here)
 ```
