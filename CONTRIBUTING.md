@@ -10,9 +10,10 @@ make setup   # venv, hash-verified dependencies, pre-commit hooks
 make check   # ruff, ruff format, mypy --strict, pytest (>= 85% coverage), bandit, pip-audit
 ```
 
-On Windows, run `make` from Git Bash. If you commit from a shell where the venv is
-not activated, put `.venv/Scripts` (or `.venv/bin`) on `PATH` first, because the
-ruff, bandit and mypy hooks run from the venv.
+On Windows, run GNU Make from Git Bash (`mingw32-make` in MinGW builds). If you
+commit from a shell where the venv is not activated, put `.venv/Scripts` (or
+`.venv/bin`) on `PATH` first, because the ruff, bandit and mypy hooks run from the
+venv.
 
 ## Rules
 

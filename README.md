@@ -6,7 +6,7 @@ synthetic IBM AMLworld data it matches the rule baseline's recall with 99% fewer
 false positives, and every number here is measured, including where it did not work.**
 
 [![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml)
-![coverage](https://img.shields.io/badge/coverage-__COV__%25-brightgreen)
+![coverage](https://img.shields.io/badge/coverage-96.8%25-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
@@ -44,7 +44,7 @@ laundering), seed 42. Details, figures and caveats: [docs/RESULTS.md](docs/RESUL
 ```bash
 git clone https://github.com/<OWNER>/<REPO>.git && cd <REPO>
 make setup   # venv + hash-verified dependencies + pre-commit hooks
-make demo    # rebuild the bundled synthetic sample's models (~1 min), start API + dashboard
+make demo    # rebuild the bundled sample's models, start API + dashboard (ready in ~15 s here)
 ```
 
 Open <http://localhost:8501> and sign in with one of the two keys `make demo` prints
@@ -54,8 +54,11 @@ is needed.
 **Or with Docker:** `docker compose up --build`, then read the keys with
 `docker compose logs demo`.
 
-**Windows:** `make` works from Git Bash (GNU Make 4.4 was used here). Without make, run
-the commands listed under each Makefile target.
+**Windows:** use GNU Make from Git Bash. MinGW builds name it `mingw32-make`
+(`mingw32-make setup`, `mingw32-make demo`). Clone to a short path such as
+`C:\src\aml-sentinel`: a dev dependency (debugpy) has deep file paths that can exceed
+Windows' 260-character limit unless long paths are enabled. Without make, run the
+commands listed under each Makefile target.
 
 The demo runs rules, LightGBM, calibration, the System 2 detectors and the local SAR
 template. It does not run Laya (2.4 GB checkpoint plus torch) or the GNN. Their
