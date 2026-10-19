@@ -22,10 +22,26 @@ repos:
 
   - repo: https://github.com/pypa/pip-audit
     rev: v2.7.3
+    # One run per lockfile, like CI and `make security`: pip-audit rejects a package
+    # pinned in two -r files at once (attrs is in base and dev).
     hooks:
-      - id: pip-audit
-        args: ["--strict", "--require-hashes", "--disable-pip", "-r", "requirements/base.txt", "-r", "requirements/dev.txt", "-r", "requirements/laya.txt", "-r", "requirements/gnn.txt", "-r", "requirements/llm.txt"]
+      - &pip-audit
+        id: pip-audit
+        name: pip-audit base
+        args: ["--strict", "--require-hashes", "--disable-pip", "-r", "requirements/base.txt"]
         files: ^requirements/.*\.txt$
+      - <<: *pip-audit
+        name: pip-audit dev
+        args: ["--strict", "--require-hashes", "--disable-pip", "-r", "requirements/dev.txt"]
+      - <<: *pip-audit
+        name: pip-audit laya
+        args: ["--strict", "--require-hashes", "--disable-pip", "-r", "requirements/laya.txt"]
+      - <<: *pip-audit
+        name: pip-audit gnn
+        args: ["--strict", "--require-hashes", "--disable-pip", "-r", "requirements/gnn.txt"]
+      - <<: *pip-audit
+        name: pip-audit llm
+        args: ["--strict", "--require-hashes", "--disable-pip", "-r", "requirements/llm.txt"]
 
   # Python tooling runs from the project venv so hooks use exactly the versions in
   # requirements/dev.txt. Remote hook pins drifted from the lockfile (ruff 0.6.9 vs
