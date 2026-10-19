@@ -4,6 +4,18 @@ All notable changes are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] - 2026-10-20
+
+### Fixed
+
+- CI's `mypy --strict` failed with `import-not-found` for `torch` and
+  `huggingface_hub`. Both are lazy imports from the optional Laya/GNN stacks, which CI
+  does not install; they now share the existing optional-import mypy exemption.
+  Verified in a fresh venv with only the CI dependency set: mypy, ruff and bandit are
+  clean, and pytest gives 417 passed, 3 skipped (GNN), 93.97% coverage.
+- The README coverage badge now shows the CI-measured 94% instead of the 96.8% from a
+  machine with the optional stacks installed.
+
 ## [1.0.1] - 2026-10-20
 
 ### Fixed

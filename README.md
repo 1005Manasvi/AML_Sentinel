@@ -6,7 +6,7 @@ synthetic IBM AMLworld data it matches the rule baseline's recall with 99% fewer
 false positives, and every number here is measured, including where it did not work.**
 
 [![CI](https://github.com/1005Manasvi/AML_Sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/1005Manasvi/AML_Sentinel/actions/workflows/ci.yml)
-![coverage](https://img.shields.io/badge/coverage-96.8%25-brightgreen)
+![coverage](https://img.shields.io/badge/coverage-94%25-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 

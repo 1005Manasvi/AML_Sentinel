@@ -41,7 +41,7 @@ All HI-Small test, seed 42, measured by this repository.
 | `{LAYA_AP}` / `{LGBM_QUEUE_AP}` | 0.096 / 0.649 | `reports/system1b/HI-Small.json` → `models` |
 | `{LAYA_GAIN}` | 0.010 [95% CI +0.006, +0.015] | `reports/evaluation/HI-Small.json` → ablation "+ Laya" |
 | `{LAYA_MS}` / `{LGBM_US}` | 304 / 8.4 | `reports/evaluation/HI-Small.json` → `latency.stages` |
-| `{N_TESTS}` / `{COVERAGE}` | 417 / 96.8% | `make test` on the v1.0.0 tree (Phase 9 run) |
+| `{N_TESTS}` / `{COVERAGE}` | 420 / 94% | CI-equivalent run (base + dev only): 417 pass, 3 GNN tests skip, 93.97% coverage. With the optional Laya/GNN stacks installed: 96.8% |
 | `{GNN_DIFF}` | −0.002 [95% CI −0.013, +0.011] | `reports/system2/HI-Small_gnn.json` |
 
 ## Wording to avoid
