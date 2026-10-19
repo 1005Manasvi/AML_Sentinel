@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aml-sentinel"
-version = "1.0.1"
+version = "1.0.2"
 description = "Real-time anti-money-laundering transaction monitoring (System 1 / System 2 triage)."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -67,10 +67,11 @@ packages = ["aml_sentinel"]
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 
-# scikit-learn, laya, pyarrow and plotly ship no type information (laya is also optional,
-# absent in CI). Keep the exemption as narrow as possible.
+# scikit-learn, laya, pyarrow and plotly ship no type information. laya, torch,
+# torch_geometric and huggingface_hub are optional stacks (make laya-setup / gnn-setup)
+# that CI does not install. Keep the exemption as narrow as possible.
 [[tool.mypy.overrides]]
-module = ["sklearn", "sklearn.*", "laya", "laya.*", "torch_geometric", "torch_geometric.*", "safetensors", "safetensors.*", "anthropic", "anthropic.*", "pyarrow", "pyarrow.*", "plotly", "plotly.*"]
+module = ["sklearn", "sklearn.*", "laya", "laya.*", "torch", "torch.*", "torch_geometric", "torch_geometric.*", "huggingface_hub", "huggingface_hub.*", "safetensors", "safetensors.*", "anthropic", "anthropic.*", "pyarrow", "pyarrow.*", "plotly", "plotly.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]
