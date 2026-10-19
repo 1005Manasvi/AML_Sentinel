@@ -147,15 +147,16 @@ must **never** be sent.
   owned by the `pydantic` organisation, the source is github.com/pydantic/httpx2,
   and both locked 2.13.1 hashes match PyPI.
 
-## Security scan results (Phase 8)
+## Security scan results (v1.0.0)
 
-These were run on the final Phase 8 tree with the locked tool versions.
+These were re-run on the v1.0.0 tree (Phase 9) with the locked tool versions.
 
 | Scan | Scope | Result |
 |---|---|---|
 | bandit (`bandit -c pyproject.toml -r src`) | all of `src/` | no issues |
 | pip-audit `--strict --require-hashes` | base, dev, laya, gnn, llm lockfiles | no known vulnerabilities |
 | gitleaks (pre-commit, `--all-files`) | the working tree | no leaks |
+| pytest with coverage | 417 tests | all pass, 96.8% line+branch coverage of `src/` |
 | Auth matrix tests | every API endpoint × no key / wrong key / wrong role | pass |
 | Injection tests | SQL payloads stored as data; Markdown/HTML escaping; SAR grounding of hostile edits | pass |
 
