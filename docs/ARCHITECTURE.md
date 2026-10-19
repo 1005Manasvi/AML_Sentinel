@@ -64,6 +64,7 @@ flowchart TB
 | `api/` | FastAPI app, auth and rate limits, middleware, schemas, queue, scoring, case service, SQLite store |
 | `dashboard/` | API client, pure view helpers, Streamlit app |
 | `cli` | One entry point for every pipeline step (`aml-sentinel <command>`) |
+| `demo` | `make demo`: rebuild the sample's models, mint per-run keys, run API + dashboard (ADR-024) |
 
 ## Data flow and artifacts
 
@@ -123,6 +124,10 @@ flowchart LR
   audit log are serialised with a lock, because each record links to the previous one.
 - The dashboard holds no data. It signs in with the analyst's own key, so the API's
   role checks and audit attribution apply to every click.
+- `aml-sentinel demo` runs both: the dashboard as a child process
+  (`python -m streamlit`, fixed argv) and the API in the foreground, stopping the
+  dashboard when the API exits. In Docker, one container runs the same command
+  with both servers on `0.0.0.0`, published only on the host's loopback.
 
 ## What production would add
 

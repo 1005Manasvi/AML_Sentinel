@@ -488,3 +488,41 @@ consequences.
     general.
 - **Latency:** measured on the development machine and labelled with its source.
   Laya and detector timings are reused from their Phase 4 and 5 runs, and say so.
+
+## ADR-024: One-command demo trains on start; Docker is written but unverified here
+
+- **Demo models are trained at start, not committed.** `make demo` regenerates the
+  seed-42 sample and fits the rule baseline, LightGBM and the calibrator in under a
+  minute on a laptop CPU. No generated binary is kept in git, the demo cannot drift
+  from the code, and every model still goes through the checksum-verified load path.
+  The sample's regenerated CSVs are byte-identical to the committed ones (checked in
+  Phase 9). The Docker image runs the same steps once, at build time.
+- **Laya and the GNN are not in the demo.** They need torch and a 2.4 GB checkpoint.
+  The demo labels this, and their results come from the full pipeline
+  (docs/RESULTS.md).
+- **Keys are minted per run unless `API_KEYS` is set.** The demo makes one analyst
+  key and one admin key. It writes them once to stdout (never to the log), passes
+  only digests to the server and saves nothing. It refuses `ENVIRONMENT=prod`. In
+  Docker the keys appear in `docker compose logs`, which is acceptable for a
+  loopback-only demo. Pass `API_KEYS` for anything else.
+- **Bind addresses:** loopback by default. In the container both servers bind
+  `0.0.0.0`, and compose publishes them on the host's `127.0.0.1` only.
+- **Dashboard process:** started as `python -m streamlit` from the same interpreter,
+  with a fixed argv and no shell. Windows Smart App Control blocked an unsigned
+  console launcher (`check-toml.exe`) on the development machine, and the module form
+  avoids that class of failure.
+- **Image:** `python:3.12-slim-bookworm` pinned by digest, a separate dependency
+  stage installing with `--require-hashes`, only `libgomp1` added for LightGBM,
+  non-root user (uid 10001), code read-only to that user, an allowlist
+  `.dockerignore`, `cap_drop: ALL` and `no-new-privileges`. The package is put on
+  `PYTHONPATH` rather than `pip install .`, so the build does not pull an unpinned
+  build backend.
+- **Not verified:** Docker is not installed on the development machine, so the image
+  and compose file have not been built or run here. The base-image digest was read
+  from Docker Hub on 2026-10-20. `make demo` itself was run end to end: API health,
+  401 without or with a wrong key, analyst 200 on `/alerts` and 403 on `/audit`,
+  admin 200 on `/audit`, dashboard 200, and no key in the log stream.
+- **`make reproduce` fixed:** it skipped the Laya and GNN stages that `rank` and
+  `evaluate` read, so it could only work on a machine that already had their
+  outputs. It now runs every stage in dependency order and ends with the docs
+  consistency test, so drifted numbers fail the run.

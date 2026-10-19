@@ -120,6 +120,14 @@ must **never** be sent.
   unchanged since the manifest was written, but whoever can write the manifest can
   replace both. Production would sign artifacts and keep a model registry with
   approvals.
+- **Demo keys appear on the console.** `make demo` mints an analyst and an admin key
+  for that process when `API_KEYS` is unset and prints them once to stdout. They
+  never go to the log stream (a test checks this) and are not saved. Under Docker,
+  stdout is the container log, so the keys are readable with `docker compose logs`
+  by anyone with access to the Docker daemon. The demo refuses `ENVIRONMENT=prod`;
+  set `API_KEYS` for any shared machine (ADR-024).
+- **The Docker image has not been built on the development machine** (Docker is not
+  installed there). Its design is reviewed, not tested: see ADR-024.
 - Lockfiles are resolved on Windows. Platform-specific transitive dependencies may
   need a re-lock on Linux. See `docs/DECISIONS.md`.
 
@@ -131,6 +139,13 @@ must **never** be sent.
   pre-commit and in `make security`.
 - CI actions are pinned to full commit SHAs, with the version in a comment, and a
   test fails if any `uses:` line references a tag.
+- The Docker base image is pinned by digest. The image installs only the hashed base
+  lockfile, adds only `libgomp1`, runs as uid 10001 with code read-only to it, and
+  compose drops all capabilities and publishes ports on the host's loopback only.
+- `httpx2` (the dashboard's HTTP client) was checked in Phase 9 because the name looks
+  like a typosquat of `httpx`. It is Pydantic's maintained fork: the PyPI project is
+  owned by the `pydantic` organisation, the source is github.com/pydantic/httpx2,
+  and both locked 2.13.1 hashes match PyPI.
 
 ## Security scan results (Phase 8)
 
