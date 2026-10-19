@@ -4,6 +4,19 @@ All notable changes are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-10-20
+
+### Fixed
+
+- CI failed at the hash-verified install on Linux: `ipython` needs `pexpect` only on
+  non-Windows systems, and the lockfile compiled on Windows had dropped it. `pexpect`
+  and `ptyprocess` are now pinned in `requirements/dev.txt`; no other pin changed.
+
+### Added
+
+- `tests/test_lockfiles.py`: fails if any pinned package needs an unpinned dependency
+  under Linux or Windows markers, so a Windows re-lock cannot break CI silently again.
+
 ## [1.0.0] - 2026-10-20
 
 First complete release. Every number below is measured on **synthetic** data
