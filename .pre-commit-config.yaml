@@ -8,6 +8,9 @@ repos:
       - id: detect-private-key
       - id: check-merge-conflict
       - id: check-toml
+        # Windows Smart App Control blocks the unsigned check-toml.exe launcher
+        # (WinError 4551); running the same module via the hook env's python avoids it.
+        entry: python -m pre_commit_hooks.check_toml
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
