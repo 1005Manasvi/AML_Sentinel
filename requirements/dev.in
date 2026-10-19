@@ -17,3 +17,7 @@ ipykernel
 nbformat
 nbconvert
 matplotlib
+# ipython needs pexpect on Linux/macOS only (marker sys_platform != "win32"), so a lock
+# compiled on Windows silently dropped it and CI's --require-hashes install failed.
+# Pinned unconditionally: it is pure Python and harmless on Windows.
+pexpect

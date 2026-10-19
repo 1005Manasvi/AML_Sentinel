@@ -128,8 +128,10 @@ must **never** be sent.
   set `API_KEYS` for any shared machine (ADR-024).
 - **The Docker image has not been built on the development machine** (Docker is not
   installed there). Its design is reviewed, not tested: see ADR-024.
-- Lockfiles are resolved on Windows. Platform-specific transitive dependencies may
-  need a re-lock on Linux. See `docs/DECISIONS.md`.
+- Lockfiles are resolved on Windows, and pip-compile drops dependencies whose marker
+  does not match the machine. That broke the first Linux CI install (v1.0.0:
+  `pexpect`). `tests/test_lockfiles.py` now checks every pinned package's
+  requirements under both Linux and Windows markers.
 
 ## Supply chain
 

@@ -56,3 +56,7 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Downloaded CI log archives
+logs_*/
+logs_*.zip
