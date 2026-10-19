@@ -6,6 +6,7 @@ Usage::
     aml-sentinel prepare-data --dataset HI-Small
     aml-sentinel new-api-key --user alice --role analyst
     aml-sentinel serve --port 8000
+    aml-sentinel demo
 
 ``generate-sample`` writes the small synthetic dataset to ``data/sample/``.
 
@@ -18,6 +19,9 @@ JSON manifest (row counts, FX rates, SHA-256 checksums of inputs and output) to
 digest) to configure on the server. The key itself is never stored.
 
 ``serve`` starts the authenticated API (see :mod:`aml_sentinel.api.app`).
+
+``demo`` rebuilds the bundled sample and its small models, then runs the API and the
+dashboard together with keys minted for that process (see :mod:`aml_sentinel.demo`).
 """
 
 from __future__ import annotations
@@ -37,6 +41,7 @@ from aml_sentinel.data.patterns import TYPOLOGY, attach_typology, load_patterns
 from aml_sentinel.data.schema import Col, DatasetName
 from aml_sentinel.data.splits import SplitName, TimeSplit, assert_no_future_rows
 from aml_sentinel.data.synthetic import SyntheticConfig, generate, write_dataset
+from aml_sentinel.demo import build_models, demo_credentials, run_demo
 from aml_sentinel.evaluation.report import evaluate_command
 from aml_sentinel.exceptions import AmlSentinelError
 from aml_sentinel.integrity import sha256_file
@@ -177,6 +182,13 @@ def _build_parser() -> argparse.ArgumentParser:
     serve = sub.add_parser("serve", help="start the authenticated API (API_DATASET)")
     serve.add_argument("--host", default="127.0.0.1", help="bind address (default: loopback)")
     serve.add_argument("--port", type=int, default=8000)
+    demo = sub.add_parser("demo", help="rebuild the sample models, then run API + dashboard")
+    demo.add_argument("--host", default="127.0.0.1", help="bind address for both servers")
+    demo.add_argument("--api-port", type=int, default=8000)
+    demo.add_argument("--dashboard-port", type=int, default=8501)
+    demo.add_argument(
+        "--skip-build", action="store_true", help="reuse models from an earlier demo run"
+    )
     return parser
 
 
@@ -215,6 +227,36 @@ def serve(settings: Settings, host: str, port: int) -> None:  # pragma: no cover
     # log_config=None keeps uvicorn on our JSON root logger; server_header=False
     # stops advertising the server software.
     uvicorn.run(app, host=host, port=port, log_config=None, server_header=False)
+
+
+def demo(settings: Settings, args: argparse.Namespace) -> None:  # pragma: no cover - blocks
+    """Build the Sample models (unless skipped) and run the API and dashboard.
+
+    Args:
+        settings: Settings.
+        args: Parsed ``demo`` arguments.
+
+    Raises:
+        ConfigurationError: If ``ENVIRONMENT=prod``.
+    """
+    credentials = demo_credentials(settings)  # fail fast before any slow work
+    sample = DatasetName.SAMPLE
+    if not args.skip_build:
+        build_models(
+            [
+                ("generate-sample", lambda: generate_sample(settings, settings.random_seed)),
+                ("prepare-data", lambda: prepare_data(settings, sample)),
+                ("baseline", lambda: baseline_command(settings, sample)),
+                ("train-tabular", lambda: system1a_command(settings, sample)),
+            ]
+        )
+    run_demo(
+        credentials,
+        host=args.host,
+        api_port=args.api_port,
+        dashboard_port=args.dashboard_port,
+        serve=serve,
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -260,6 +302,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             evaluate_command(settings, args.dataset)
         elif args.command == "serve":
             serve(settings, args.host, args.port)
+        elif args.command == "demo":
+            demo(settings, args)
     except AmlSentinelError as exc:
         # Our exceptions carry safe messages; anything else is a bug and should
         # surface with a traceback.

@@ -119,19 +119,24 @@ train:  ## System 1a: LightGBM + calibration vs baseline (needs `make baseline`)
 	$(PY) -m aml_sentinel.cli train-tabular --dataset HI-Small
 	$(PY) -m aml_sentinel.cli train-tabular --dataset LI-Small
 
-demo:
-	@echo "Demo mode (bundled sample + small models) arrives in Phase 9." && exit 1
+demo:  ## Rebuild sample models (~1 min), then API + dashboard with keys minted for this run
+	$(PY) -m aml_sentinel.cli demo
 
-reproduce:  ## Grows phase by phase until it regenerates every README figure/table
+reproduce:  ## Every README/RESULTS table and figure. Needs data/raw, laya-setup + gnn-setup, NVIDIA GPU (~3 h)
 	$(MAKE) sample
 	$(MAKE) data
 	$(MAKE) baseline
 	$(MAKE) train
+	$(MAKE) laya-data
+	$(MAKE) finetune-laya
+	$(MAKE) triage-text
 	$(MAKE) detect
+	$(MAKE) gnn
 	$(MAKE) rank
 	$(MAKE) sar
 	$(MAKE) evaluate
 	$(MAKE) notebook
+	$(PY) -m pytest tests/test_docs_consistency.py --no-cov -q
 
 clean:
 	rm -rf .mypy_cache .ruff_cache .pytest_cache .hypothesis .coverage htmlcov
