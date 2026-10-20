@@ -526,3 +526,33 @@ consequences.
   `evaluate` read, so it could only work on a machine that already had their
   outputs. It now runs every stage in dependency order and ends with the docs
   consistency test, so drifted numbers fail the run.
+
+## ADR-025: TreeSHAP explanations per alert, and PSI drift monitoring
+
+- **Explanations:** LightGBM's native TreeSHAP (`pred_contrib=True`) gives exact
+  per-feature contributions to the log-odds, so the `shap` library and its
+  dependencies are not needed. The API returns the six largest contributions with the
+  base value and the sum of the rest; the dashboard draws them (red raises risk, blue
+  lowers it). A test checks additivity against the model's own output.
+  - **What it explains:** the LightGBM log-odds, the main input to `p_triage`, before
+    calibration and fusion. The dashboard says so, and that it is an association, not
+    evidence.
+  - **Scope:** explanations reuse the scorer's past-only feature path (features built
+    once over the served history, then one row read). They share its 100k-row cap, so
+    the demo has them and HI-Small reports why it does not: there is no online
+    feature store.
+  - **Security:** explanations contain feature names and values the case page already
+    implies; nothing new leaves the machine. Labels hold no feature, and the existing
+    no-labels test covers the case response.
+- **Drift:** PSI per feature and for the score, for train → test, val → test and
+  train → val, written by `aml-sentinel drift`. Bins are quantiles of the earlier
+  period; repeated edges are merged for binary features. Property tests check that PSI
+  is never negative and is zero for identical samples.
+- **Finding (HI-Small):** 20 of 35 features shift "major" train → test, mostly because
+  `weekday` and cumulative history features change with time by construction. The
+  score itself is stable val → test (PSI 0.043), so calibration's test failure
+  (ADR-011) is not a score-distribution shift. Fixed-window replacements for the
+  cumulative features are the production fix, not done here.
+- **Not added:** MLflow (experiment tracking) and Kafka (streaming). Both would add a
+  large dependency and service surface for little evidence on a 2-day synthetic test
+  window. Reports, manifests and checksums already record every run.

@@ -84,6 +84,17 @@ transactions.
 - Smoothed isotonic and last-day recalibration were evaluated. Validation did not
   select them (ADR-022).
 - The API therefore shows each alert's measured band reliability next to the score.
+- A PSI drift report (`make drift`) shows the score distribution is stable from
+  validation to test (PSI 0.043), so the calibration failure comes from a changing
+  score-to-label relationship rather than shifted scores (ADR-025).
+
+## Explanations
+
+- Each case shows the six largest exact TreeSHAP contributions to the LightGBM
+  log-odds (before calibration and fusion). They describe what the model relied on,
+  an association in synthetic data, not a cause or evidence of wrongdoing.
+- Available up to the scorer's 100k-row history cap (the demo), not on HI-Small
+  without an online feature store.
 
 ## Failure modes
 
@@ -99,6 +110,9 @@ transactions.
 - **Detectors** confuse benign hubs with fan-ins (lift 1.3×). On the bundled sample
   they are anti-informative, because its graph is much denser (ADR-015).
 - **Calibration drift** between periods (above).
+- **Cumulative features drift by design:** 20 of 35 features shift "major" (PSI ≥ 0.25)
+  from training to test, mostly account age and since-start counts. Production would
+  need fixed-window versions.
 - **Evasion:** fixed thresholds can be learned. No adversarial testing was done.
 
 ## Fairness and bias

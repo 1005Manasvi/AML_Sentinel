@@ -12,8 +12,10 @@ from. Use only these values, or re-measured ones from `make reproduce`. Always k
    AMLworld test transactions, using time-split, past-only graph features.
 2. Designed a leakage-proof evaluation: time-based splits, past-only features
    verified by property and label-scrambling tests, a {N_ABLATION}-step ablation with
-   paired bootstrap CIs, and calibration reported honestly (validation-fitted
-   isotonic **worsened** test ECE from {ECE_RAW} to {ECE_CAL} due to drift).
+   paired bootstrap CIs, and calibration reported honestly: validation-fitted
+   isotonic **worsened** test ECE from {ECE_RAW} to {ECE_CAL}, while a PSI drift
+   report showed the score distribution stayed stable (PSI {SCORE_PSI}), so the cause
+   was a changing score-to-label relationship.
 3. Fine-tuned and benchmarked an open-source decision model (Laya) against LightGBM:
    found it near random alone (PR-AUC {LAYA_AP} vs {LGBM_QUEUE_AP}) but a small
    significant gain in fusion (+{LAYA_GAIN} PR-AUC), and documented the trade-off of
@@ -26,6 +28,9 @@ from. Use only these values, or re-measured ones from `make reproduce`. Always k
 5. Ran a GraphSAGE experiment against graph-pattern detectors and LightGBM on
    identical inputs. Message passing added nothing measurable ({GNN_DIFF} PR-AUC),
    and the same-input ablation exposed a feature bug in the first run.
+6. Added per-alert explainability with exact TreeSHAP (LightGBM `pred_contrib`) to the
+   analyst API and dashboard, verified by an additivity test against the model's own
+   log-odds.
 
 ## Values to plug in
 
@@ -41,7 +46,8 @@ All HI-Small test, seed 42, measured by this repository.
 | `{LAYA_AP}` / `{LGBM_QUEUE_AP}` | 0.096 / 0.649 | `reports/system1b/HI-Small.json` → `models` |
 | `{LAYA_GAIN}` | 0.010 [95% CI +0.006, +0.015] | `reports/evaluation/HI-Small.json` → ablation "+ Laya" |
 | `{LAYA_MS}` / `{LGBM_US}` | 304 / 8.4 | `reports/evaluation/HI-Small.json` → `latency.stages` |
-| `{N_TESTS}` / `{COVERAGE}` | 420 / 94% | CI-equivalent run (base + dev only): 417 pass, 3 GNN tests skip, 93.97% coverage. With the optional Laya/GNN stacks installed: 96.8% |
+| `{N_TESTS}` / `{COVERAGE}` | 438 / 94% | v1.1.0: 438 pass locally with the optional Laya/GNN stacks (96.8% coverage). CI installs neither, skips the 3 GNN tests and measured 93.97% at v1.0.2; check the v1.1.0 CI log before quoting it |
+| `{SCORE_PSI}` | 0.043 | `reports/drift/HI-Small.json` → `score_psi_val_to_test` |
 | `{GNN_DIFF}` | −0.002 [95% CI −0.013, +0.011] | `reports/system2/HI-Small_gnn.json` |
 
 ## Wording to avoid

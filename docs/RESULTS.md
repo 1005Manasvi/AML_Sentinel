@@ -338,6 +338,43 @@ GPU, single process):
 - New docs: [docs/ARCHITECTURE.md](ARCHITECTURE.md) and
   [docs/MODEL_CARD.md](MODEL_CARD.md).
 
+## Drift between periods (v1.1.0)
+
+`make drift` (or `aml-sentinel drift --dataset HI-Small`) writes
+[reports/drift/](../reports/drift/). PSI uses 10 quantile bins of the earlier period;
+the labels are the common rule of thumb (< 0.1 stable, 0.1–0.25 moderate, ≥ 0.25
+major), not a statistical test.
+
+| Comparison | Major | Moderate | Stable |
+|---|---:|---:|---:|
+| train → test | 20 | 2 | 13 |
+| val → test | 5 | 1 | 29 |
+| train → val | 19 | 4 | 12 |
+
+![PSI of the most-shifted features](../reports/drift/HI-Small_psi.png)
+
+- **Most "major" shifts are built into the features, not caused by new behaviour.**
+  `weekday` differs because each period covers different days. Account age, the
+  history flags and the cumulative degree and payment counts grow with time, because
+  they count everything since the dataset began. In production these features would
+  keep growing, so they should be replaced by fixed-window counts.
+- **The model's score barely moved from validation to test:** PSI 0.0428 (stable), mean
+  raw score 0.00064 → 0.00084, while the laundering rate went from 0.107% to 0.111%.
+  So a large score-distribution shift does **not** explain why validation-fitted
+  calibration got worse on test (ADR-011). The more likely cause is the
+  score-to-label relationship changing, which PSI on inputs cannot see.
+
+## Per-alert explanations (v1.1.0)
+
+Every case in the API and dashboard now shows **why LightGBM scored it as it did**:
+exact TreeSHAP contributions computed by LightGBM itself (`pred_contrib`), the six
+largest shown. A test checks that the bias plus all contributions equals the model's own
+log-odds to 1e-6. The explanations describe the LightGBM log-odds before calibration
+and fusion. They show what the model relied on, which is an association in synthetic
+data, not evidence of wrongdoing. They reuse the scorer's past-only feature path, so
+like `POST /score` they are available up to 100k history rows: on the demo, not on
+HI-Small without an online feature store (ADR-025).
+
 ## What did not work
 
 Collected from the sections above, so a reader does not have to hunt for them.
@@ -369,3 +406,7 @@ Collected from the sections above, so a reader does not have to hunt for them.
    quality.
 9. **Jev was never run**: no key, and it is disabled by default. There is no Jev
    number anywhere in this repository.
+10. **Cumulative graph features drift by design.** 20 of 35 features shift "major"
+    between training and test, mostly because they count everything since the
+    dataset began. The model still ranks well within this short window, but these
+    features would not stay stable in production (see "Drift between periods").

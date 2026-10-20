@@ -131,3 +131,16 @@ def test_readme_defers_detail_to_results() -> None:
         assert detail_row in RESULTS
         assert detail_row not in README
     assert "docs/RESULTS.md" in README
+
+
+@pytest.mark.parametrize("comparison", ["train → test", "val → test", "train → val"])
+def test_drift_table_matches_report(comparison: str) -> None:
+    values = _report("drift", "HI-Small.json")["features"][comparison.replace(" → ", "->")]
+    major = sum(1 for x in values.values() if x >= 0.25)
+    moderate = sum(1 for x in values.values() if 0.1 <= x < 0.25)
+    assert _row(comparison)[1:4] == [str(major), str(moderate), str(len(values) - major - moderate)]
+
+
+def test_drift_score_psi_matches_report() -> None:
+    r = _report("drift", "HI-Small.json")
+    assert f"PSI {r['score_psi_val_to_test']:.4f} (stable)" in RESULTS

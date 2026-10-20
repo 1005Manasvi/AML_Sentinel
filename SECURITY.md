@@ -158,7 +158,7 @@ These were re-run on the v1.0.0 tree (Phase 9) with the locked tool versions.
 | bandit (`bandit -c pyproject.toml -r src`) | all of `src/` | no issues |
 | pip-audit `--strict --require-hashes` | base, dev, laya, gnn, llm lockfiles | no known vulnerabilities |
 | gitleaks (pre-commit, `--all-files`) | the working tree | no leaks |
-| pytest with coverage | 420 tests, CI dependency set | 417 pass, 3 GNN tests skip without PyTorch Geometric; 94.0% line+branch coverage of `src/` (96.8% with the optional stacks) |
+| pytest with coverage | 438 tests (v1.1.0) | all pass with the optional stacks, 96.8% line+branch coverage of `src/`; CI skips the 3 GNN tests (93.97% at v1.0.2) |
 | Auth matrix tests | every API endpoint × no key / wrong key / wrong role | pass |
 | Injection tests | SQL payloads stored as data; Markdown/HTML escaping; SAR grounding of hostile edits | pass |
 

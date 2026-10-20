@@ -1,9 +1,10 @@
 # AML Sentinel
 
-**An anti-money-laundering monitor that ranks transaction alerts by calibrated risk,
-explains them with graph evidence and drafts grounded SARs for analyst review. On
-synthetic IBM AMLworld data it matches the rule baseline's recall with 99% fewer
-false positives, and every number here is measured, including where it did not work.**
+**An anti-money-laundering alert-triage system: it ranks alerts by calibrated risk,
+explains each score feature by feature, adds graph evidence and drafts grounded SARs
+for analyst review. On synthetic IBM AMLworld data it cut false positives in the top 5%
+of the alert queue from 170 to 49, and matched the rule baseline's recall with 99% fewer
+false positives. Every number is measured, including where it did not work.**
 
 [![CI](https://github.com/1005Manasvi/AML_Sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/1005Manasvi/AML_Sentinel/actions/workflows/ci.yml)
 ![coverage](https://img.shields.io/badge/coverage-94%25-brightgreen)
@@ -14,6 +15,11 @@ false positives, and every number here is measured, including where it did not w
 
 > **Synthetic data only.** Every result comes from IBM AMLworld or this project's own
 > generator. Nothing has been validated on real transactions.
+>
+> **How it was built.** Built by Manasvi Patil with an AI pair-programmer (Claude Code).
+> Design decisions and their reasons are recorded in [docs/DECISIONS.md](docs/DECISIONS.md),
+> and every result is reproducible from the commands in [docs/RESULTS.md](docs/RESULTS.md)
+> and checked against its report by tests.
 
 ## Key results
 
@@ -60,8 +66,8 @@ is needed.
 Windows' 260-character limit unless long paths are enabled. Without make, run the
 commands listed under each Makefile target.
 
-The demo runs rules, LightGBM, calibration, the System 2 detectors and the local SAR
-template. It does not run Laya (2.4 GB checkpoint plus torch) or the GNN. Their
+The demo runs rules, LightGBM, calibration, per-alert TreeSHAP explanations, the
+System 2 detectors and the local SAR template. It does not run Laya (2.4 GB checkpoint plus torch) or the GNN. Their
 results come from the full pipeline, and the sample is a workflow demo, not evidence
 of model quality (ADR-015).
 
@@ -103,16 +109,17 @@ flowchart LR
 | Stage | What it does | Why |
 |---|---|---|
 | Rule engine | Amount threshold, high-risk jurisdiction (synthetic list), velocity | The baseline every model is reported against |
-| LightGBM | Past-only graph features: degree, flow ratios, velocity, short cycles, counterparty diversity | Fast, strong, interpretable feature importances |
+| LightGBM | Past-only graph features: degree, flow ratios, velocity, short cycles, counterparty diversity | Fast, strong; each alert's score is explained feature by feature with exact TreeSHAP |
 | Laya | Local, fine-tuned decision model answering typology / risk / escalate questions over a text summary | Tests whether a small text model adds signal; measured honestly (ADR-014) |
 | Jev | Hosted decision-model adapter, **benchmark-only, synthetic-only, off by default** | A closed API must never see customer data; enforced in code (ADR-013) |
 | Fusion + calibration | Logistic stacker, then isotonic or Platt chosen on validation | Interpretable weights; scores are never shown as raw probabilities |
 | System 2 detectors | Circular flows, structuring, fan-in/out, scatter-gather on past-only case subgraphs | Named, checkable evidence for the analyst and the SAR |
 | GraphSAGE | Experiment, compared with LightGBM on the same inputs | Honest test of whether message passing helps here (it did not) |
+| Drift monitoring | PSI of every feature and of the score between train, validation and test | Shows what moved between periods, and what did not (ADR-025) |
 | SAR drafting | Local template by default; optional LLM gets pseudonymised facts only; every figure grounded | Drafts are stamped *DRAFT - requires analyst review* and audited |
 | API + dashboard | FastAPI with API keys, roles, rate limits, strict CORS; Streamlit queue, graph, SAR editor, audit view | Analysts decide; every action is audited in a hash-chained log |
 
-More: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and the 24 short ADRs in
+More: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and the 25 short ADRs in
 [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Security
@@ -200,7 +207,7 @@ demo needs no download.
 
 - [docs/RESULTS.md](docs/RESULTS.md): every measured result, figures, how to reproduce, what did not work
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): components, data flow, artifacts, runtime
-- [docs/DECISIONS.md](docs/DECISIONS.md): ADR-001 to ADR-024
+- [docs/DECISIONS.md](docs/DECISIONS.md): ADR-001 to ADR-025
 - [docs/MODEL_CARD.md](docs/MODEL_CARD.md): intended use, metrics, calibration, failure modes, fairness
 - [SECURITY.md](SECURITY.md): threat model
 - [docs/BLOG_POST.md](docs/BLOG_POST.md): engineering write-up

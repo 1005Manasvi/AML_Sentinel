@@ -48,14 +48,18 @@ because the score-to-label relationship drifts between the two periods (ADR-011)
 I did not tune that away on test, because that would be leakage. Rolling
 recalibration did not help either. Because the top isotonic bin is 1.0, the API
 shows each score next to its measured test reliability instead of presenting it as a
-true probability (ADR-022).
+true probability (ADR-022). A PSI drift report later showed the score distribution
+itself was stable between validation and test (PSI 0.043), so what changed is the
+score-to-label relationship, which input monitoring alone cannot catch (ADR-025).
 
 **5. Why LightGBM rather than a deep model?**
 
 The signal is in tabular, past-only graph aggregates, and gradient-boosted trees are
 strong, fast (8.4 µs per transaction) and inspectable on that kind of data. The deep
 alternatives I did try, Laya and a GNN, did not beat it. LightGBM is also saved in its
-native text format with a checksum, so nothing needs pickle.
+native text format with a checksum, so nothing needs pickle. Each alert is explained
+with exact TreeSHAP values computed by LightGBM itself, and a test checks they add up
+to the model's own log-odds.
 
 **6. Laya vs LightGBM: why keep Laya when it lost?**
 
