@@ -167,6 +167,27 @@ class ReliabilityOut(_Out):
     )
 
 
+class ContributionOut(_Out):
+    """One feature's TreeSHAP push on the LightGBM log-odds."""
+
+    feature: str
+    value: float
+    contribution: float
+
+
+class ExplanationOut(_Out):
+    """Why LightGBM scored this alert as it did (association, not causation)."""
+
+    model: str
+    base_log_odds: float
+    log_odds: float
+    top: list[ContributionOut]
+    others: float
+    method: Literal["TreeSHAP (LightGBM pred_contrib), before calibration and fusion"] = (
+        "TreeSHAP (LightGBM pred_contrib), before calibration and fusion"
+    )
+
+
 class CaseDetail(_Out):
     """Everything an analyst sees for one case."""
 
@@ -191,6 +212,10 @@ class CaseDetail(_Out):
     edges: list[EdgeOut]
     actions: list[ActionOut]
     sar: SarOut | None
+    explanation: ExplanationOut | None = Field(
+        default=None, description="TreeSHAP explanation of the LightGBM score"
+    )
+    explanation_unavailable: str | None = None
 
 
 class SarEdit(BaseModel):

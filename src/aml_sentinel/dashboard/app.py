@@ -26,6 +26,8 @@ from aml_sentinel.config import load_settings
 from aml_sentinel.dashboard import client as api
 from aml_sentinel.dashboard.views import (
     case_graph,
+    explanation_chart,
+    explanation_table,
     findings_table,
     plain,
     queue_table,
@@ -170,6 +172,26 @@ def _actions_section(client: api.ApiClient, d: dict[str, Any]) -> None:
     )
 
 
+def _explanation_section(d: dict[str, Any]) -> None:
+    st.subheader("Why the model scored it this way")
+    e = d.get("explanation")
+    if not e:
+        st.caption(plain(f"No explanation: {d.get('explanation_unavailable') or 'unavailable'}."))
+        return
+    st.plotly_chart(explanation_chart(e))
+    st.dataframe(explanation_table(e), hide_index=True)
+    st.caption(
+        plain(
+            f"TreeSHAP contributions of {e['model']} (log-odds {e['log_odds']:+.2f} from a "
+            f"baseline of {e['base_log_odds']:+.2f}; other features {e['others']:+.2f}). "
+            "Red pushes the score up, blue pushes it down. This shows what the model relied "
+            "on, measured before calibration and fusion. It is an association learned from "
+            "synthetic data, not evidence of wrongdoing.",
+            max_len=600,
+        )
+    )
+
+
 def _case_page(client: api.ApiClient) -> None:
     case_id = st.text_input("Case ID", value=st.session_state.get("case_id", ""), max_chars=17)
     if not case_id:
@@ -201,6 +223,7 @@ def _case_page(client: api.ApiClient) -> None:
         note += " Hub accounts were capped, so the case is truncated."
     st.caption(plain(note, max_len=600))
 
+    _explanation_section(d)
     st.subheader("Transaction graph (72 h before the alert)")
     pattern_accounts = [a for f in d["findings"] for a in f["accounts"]]
     st.plotly_chart(case_graph(d["edges"], d["subjects"], pattern_accounts))

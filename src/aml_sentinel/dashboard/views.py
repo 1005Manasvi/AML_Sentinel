@@ -185,3 +185,57 @@ def case_graph(
         height=480,
     )
     return fig
+
+
+def explanation_table(explanation: dict[str, Any]) -> pd.DataFrame:
+    """Table of the features that moved the LightGBM score most.
+
+    Args:
+        explanation: ``CaseDetail.explanation``.
+
+    Returns:
+        ``feature``, ``value``, ``effect`` (raises/lowers risk) and the TreeSHAP
+        ``contribution`` to the log-odds, largest first.
+    """
+    rows = [
+        {
+            "feature": c["feature"],
+            "value": round(float(c["value"]), 4),
+            "effect": "raises risk" if float(c["contribution"]) > 0 else "lowers risk",
+            "contribution": round(float(c["contribution"]), 4),
+        }
+        for c in explanation["top"]
+    ]
+    return pd.DataFrame(rows, columns=["feature", "value", "effect", "contribution"])
+
+
+def explanation_chart(explanation: dict[str, Any]) -> go.Figure:
+    """Horizontal bar chart of TreeSHAP contributions (red raises risk, blue lowers it).
+
+    Args:
+        explanation: ``CaseDetail.explanation``.
+
+    Returns:
+        A plotly figure.
+    """
+    top = list(reversed(explanation["top"]))  # plotly draws bottom-up; largest on top
+    values = [float(c["contribution"]) for c in top]
+    fig = go.Figure(
+        go.Bar(
+            x=values,
+            y=[html.escape(str(c["feature"])) for c in top],
+            orientation="h",
+            marker={"color": ["#c0392b" if v > 0 else "#2471a3" for v in values]},
+            hovertext=[
+                html.escape(f"{c['feature']} = {float(c['value']):.4g}: {v:+.3f} log-odds")
+                for c, v in zip(top, values, strict=True)
+            ],
+            hoverinfo="text",
+        )
+    )
+    fig.update_layout(
+        xaxis={"title": {"text": "contribution to LightGBM log-odds"}, "zeroline": True},
+        margin={"l": 10, "r": 10, "t": 10, "b": 40},
+        height=60 + 36 * len(top),
+    )
+    return fig

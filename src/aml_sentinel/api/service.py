@@ -23,7 +23,8 @@ from aml_sentinel.audit import AuditLog, AuditRecord
 from aml_sentinel.config import Settings
 from aml_sentinel.data.processed import load_processed
 from aml_sentinel.data.schema import Col, DatasetName
-from aml_sentinel.exceptions import AmlSentinelError
+from aml_sentinel.exceptions import AmlSentinelError, DataValidationError
+from aml_sentinel.models.explain import Explanation
 from aml_sentinel.sar.drafting import draft_sar
 from aml_sentinel.sar.facts import CaseFacts, build_case_facts
 from aml_sentinel.sar.llm import AnthropicClient, LlmClient
@@ -68,6 +69,8 @@ class CaseView:
         case: Past-only case subgraph.
         facts: SAR fact sheet (also the data shown to the analyst).
         status: Current status.
+        explanation: Why LightGBM scored the alert as it did, or ``None``.
+        explanation_unavailable: Why there is no explanation, when there is none.
     """
 
     entry: QueueEntry
@@ -75,6 +78,8 @@ class CaseView:
     case: Case
     facts: CaseFacts
     status: CaseStatus
+    explanation: Explanation | None = None
+    explanation_unavailable: str | None = None
 
 
 class CaseService:
@@ -148,7 +153,18 @@ class CaseService:
         case = self._index.build(entry.tx_id)
         facts = build_case_facts(case, run_detectors(case), risk_score=entry.p_triage)
         status = self.status_of(entry, self._store.latest_actions())
-        return CaseView(entry, rank, case, facts, status)
+        explanation, unavailable = self._explain(entry.tx_id)
+        return CaseView(entry, rank, case, facts, status, explanation, unavailable)
+
+    def _explain(self, tx_id: int) -> tuple[Explanation | None, str | None]:
+        # Explanations reuse the scorer's past-only feature path, so they share its
+        # history-size cap: without an online feature store, large datasets get none.
+        if self._scorer is None:
+            return None, self._scoring_reason
+        try:
+            return self._scorer.explain(tx_id), None
+        except DataValidationError as exc:
+            return None, str(exc)
 
     def case(self, case_id: str, actor: str) -> CaseView:
         """Load a case and record that ``actor`` viewed it.

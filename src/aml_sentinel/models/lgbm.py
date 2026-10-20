@@ -173,6 +173,25 @@ class LightGBMTriage:
         raw = self._booster.predict(features[self.features], num_iteration=self.best_iteration)
         return np.asarray(raw, dtype=np.float64)
 
+    def contributions(self, features: pd.DataFrame) -> FloatArray:
+        """Per-feature TreeSHAP contributions to the raw log-odds score.
+
+        LightGBM computes exact TreeSHAP values natively (``pred_contrib``), so no extra
+        dependency is needed. For each row the contributions plus the final bias column
+        sum to the model's log-odds, which a test checks.
+
+        Args:
+            features: Feature frame containing :attr:`features`.
+
+        Returns:
+            Array of shape ``(rows, len(features) + 1)``; the last column is the bias
+            (the expected log-odds over the training data).
+        """
+        contrib = self._booster.predict(
+            features[self.features], num_iteration=self.best_iteration, pred_contrib=True
+        )
+        return np.asarray(contrib, dtype=np.float64)
+
     def triage(self, batch: AlertBatch) -> TriageOutput:
         """Score a batch (``Triage`` protocol).
 

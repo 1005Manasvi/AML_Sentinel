@@ -48,7 +48,9 @@ from aml_sentinel.api.schemas import (
     AuditView,
     CaseDetail,
     CaseStatus,
+    ContributionOut,
     EdgeOut,
+    ExplanationOut,
     FindingOut,
     GroundingIssueOut,
     Health,
@@ -73,6 +75,7 @@ from aml_sentinel.api.service import (
 from aml_sentinel.api.store import ActionRecord, SarRecord
 from aml_sentinel.config import Settings
 from aml_sentinel.exceptions import AmlSentinelError, DataValidationError, IntegrityError
+from aml_sentinel.models.explain import Explanation
 from aml_sentinel.sar.facts import TxFact
 
 logger = logging.getLogger(__name__)
@@ -186,6 +189,21 @@ def _sar_out(r: SarRecord) -> SarOut:
         notes=list(r.notes),
         author=r.author,
         created_at=r.created_at,
+    )
+
+
+def _explanation_out(e: Explanation | None) -> ExplanationOut | None:
+    if e is None:
+        return None
+    return ExplanationOut(
+        model=e.model,
+        base_log_odds=e.base_log_odds,
+        log_odds=e.log_odds,
+        top=[
+            ContributionOut(feature=c.feature, value=c.value, contribution=c.contribution)
+            for c in e.top
+        ],
+        others=e.others,
     )
 
 
@@ -340,6 +358,8 @@ def _register_routes(app: FastAPI) -> None:
             ],
             actions=[_action_out(a) for a in service.actions(case_id)],
             sar=None if sar is None else _sar_out(sar),
+            explanation=_explanation_out(view.explanation),
+            explanation_unavailable=view.explanation_unavailable,
         )
 
     @app.post("/cases/{case_id}/sar", status_code=status.HTTP_201_CREATED)

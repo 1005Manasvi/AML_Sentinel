@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 import time
 from dataclasses import dataclass
 from typing import Final
@@ -41,6 +42,7 @@ from aml_sentinel.models.calibration import (
     PlattCalibrator,
     calibrator_from_dict,
 )
+from aml_sentinel.models.explain import DEFAULT_TOP_K, Explanation, explain
 from aml_sentinel.models.lgbm import LightGBMTriage
 from aml_sentinel.models.rule_triage import VELOCITY_FEATURE
 from aml_sentinel.models.system1a import load_baseline_config
@@ -130,6 +132,10 @@ class TransactionScorer:
         self._calibrator = calibrator
         self._alert_threshold = alert_threshold
         self._rules = rules
+        # Features of the whole history, built on the first explanation request.
+        self._features: pd.DataFrame | None = None
+        self._row_of: dict[int, int] = {}
+        self._features_lock = threading.Lock()
 
     @property
     def model_name(self) -> str:
@@ -162,6 +168,36 @@ class TransactionScorer:
         row = pd.DataFrame({k: [v] for k, v in values.items()})
         # Match history dtypes (categoricals, strings) so concat does not upcast.
         return row.astype(self._history.dtypes.to_dict())
+
+    def explain(self, tx_id: int, top_k: int = DEFAULT_TOP_K) -> Explanation:
+        """Explain the LightGBM score of a transaction already in the history.
+
+        Features are past-only by construction, so building them over the whole history
+        once and reading one row gives exactly the features the model saw for it.
+
+        Args:
+            tx_id: Transaction id in the served history.
+            top_k: Contributions to return.
+
+        Returns:
+            TreeSHAP explanation of the LightGBM log-odds.
+
+        Raises:
+            DataValidationError: If ``tx_id`` is not in the history.
+        """
+        with self._features_lock:
+            if self._features is None:
+                start = time.perf_counter()
+                self._features = build_features(self._history)
+                ids = self._history[Col.TX_ID].to_numpy(dtype=np.int64)
+                self._row_of = {int(t): i for i, t in enumerate(ids)}
+                ms = (time.perf_counter() - start) * 1000
+                logger.info("explanation features built", extra={"rows": len(ids), "ms": round(ms)})
+            features = self._features
+        row = self._row_of.get(int(tx_id))
+        if row is None:
+            raise DataValidationError("transaction is not in the scoring history")
+        return explain(self._model, features.iloc[[row]], top_k)[0]
 
     def score(self, tx: Transaction) -> ScoreResult:
         """Score ``tx`` from history at or before its timestamp.
