@@ -42,6 +42,7 @@ from aml_sentinel.data.schema import Col, DatasetName
 from aml_sentinel.data.splits import SplitName, TimeSplit, assert_no_future_rows
 from aml_sentinel.data.synthetic import SyntheticConfig, generate, write_dataset
 from aml_sentinel.demo import build_models, demo_credentials, run_demo
+from aml_sentinel.evaluation.drift import drift_command
 from aml_sentinel.evaluation.report import evaluate_command
 from aml_sentinel.exceptions import AmlSentinelError
 from aml_sentinel.integrity import sha256_file
@@ -168,6 +169,7 @@ def _build_parser() -> argparse.ArgumentParser:
         ("rank", "Final calibrated ranking: System 1 p_triage + System 2 evidence"),
         ("draft-sar", "Draft grounded SARs (review-stamped) for the top test alerts"),
         ("evaluate", "Phase 8 evaluation: ablation, calibration, overlap, latency"),
+        ("drift", "PSI drift of every feature and the score between train, val and test"),
     ):
         cmd = sub.add_parser(name, help=help_text)
         cmd.add_argument(
@@ -300,6 +302,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             draft_command(settings, args.dataset)
         elif args.command == "evaluate":
             evaluate_command(settings, args.dataset)
+        elif args.command == "drift":
+            drift_command(settings, args.dataset)
         elif args.command == "serve":
             serve(settings, args.host, args.port)
         elif args.command == "demo":

@@ -9,7 +9,7 @@ else
 endif
 PY := $(BIN)/python
 
-.PHONY: sample-models setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text detect gnn-setup gnn rank sar evaluate llm-setup api dashboard api-key demo reproduce clean
+.PHONY: sample-models setup lock lint format typecheck test security check sample data baseline notebook run train laya-setup laya-data finetune-laya triage-text detect gnn-setup gnn rank sar evaluate llm-setup api dashboard api-key demo drift reproduce clean
 
 setup:  ## Create venv and install pinned, hash-verified dependencies
 	python -m venv .venv
@@ -90,6 +90,10 @@ evaluate:  ## Phase 8: ablation, calibration study, attempt overlap, latency -> 
 	$(PY) -m aml_sentinel.cli evaluate --dataset Sample
 	$(PY) -m aml_sentinel.cli evaluate --dataset HI-Small
 
+drift:  ## PSI drift per feature and for the score (train/val/test) -> reports/drift/
+	$(PY) -m aml_sentinel.cli drift --dataset Sample
+	$(PY) -m aml_sentinel.cli drift --dataset HI-Small
+
 sar:  ## Draft review-stamped, grounding-checked SARs for the top test alerts (template by default)
 	$(PY) -m aml_sentinel.cli draft-sar --dataset HI-Small
 
@@ -135,6 +139,7 @@ reproduce:  ## Every README/RESULTS table and figure. Needs data/raw, laya-setup
 	$(MAKE) rank
 	$(MAKE) sar
 	$(MAKE) evaluate
+	$(MAKE) drift
 	$(MAKE) notebook
 	$(PY) -m pytest tests/test_docs_consistency.py --no-cov -q
 
