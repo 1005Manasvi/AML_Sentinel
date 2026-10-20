@@ -1,4 +1,4 @@
-"""AML Sentinel: real-time anti-money-laundering transaction monitoring.
+"""AML Sentinel: anti-money-laundering alert triage with per-transaction scoring.
 
 The package is organised as a two-stage triage pipeline:
 
@@ -12,4 +12,4 @@ Security note:
     real customer data without a separate privacy and legal review.
 """
 
-__version__ = "1.0.2"
+__version__ = "1.1.0"

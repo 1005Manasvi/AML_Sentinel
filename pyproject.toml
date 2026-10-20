@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aml-sentinel"
-version = "1.0.2"
-description = "Real-time anti-money-laundering transaction monitoring (System 1 / System 2 triage)."
+version = "1.1.0"
+description = "Anti-money-laundering alert triage: calibrated ranking, TreeSHAP explanations, graph evidence, grounded SAR drafts."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

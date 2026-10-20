@@ -4,6 +4,25 @@ All notable changes are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-10-20
+
+### Added
+
+- **Per-alert explanations:** exact TreeSHAP contributions (LightGBM `pred_contrib`) in
+  the case API and a "Why the model scored it this way" chart and table on the
+  dashboard's case page (ADR-025).
+- **Drift monitoring:** `aml-sentinel drift` / `make drift` writes PSI per feature and
+  for the score between train, validation and test (`reports/drift/`). HI-Small: 20 of
+  35 features shift "major" train → test, mostly by construction (weekday, cumulative
+  history counts); the score is stable val → test (PSI 0.043).
+
+### Changed
+
+- README headline leads with the in-queue result (false positives in the top 5%:
+  170 → 49), and states how the project was built (with an AI pair-programmer).
+- Package description no longer says "real-time": scoring is per transaction, but
+  there is no streaming infrastructure.
+
 ## [1.0.2] - 2026-10-20
 
 ### Fixed

@@ -3,7 +3,7 @@
 services:
   demo:
     build: .
-    image: aml-sentinel-demo:1.0.2
+    image: aml-sentinel-demo:1.1.0
     # Published on the host's loopback only: nothing is reachable from the network.
     ports:
       - "127.0.0.1:8000:8000"
