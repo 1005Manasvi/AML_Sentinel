@@ -134,6 +134,7 @@ Treat every transaction field as untrusted. In short:
 - Prompt injection: the alert summarizer emits only computed numeric facts, never
   free text; the SAR drafter delimits data, rejects off-schema replies, pseudonymises
   before any external call and grounds every account, amount and date.
+- Case history in SQLite with parameterised SQL only, made append-only by triggers.
 - Hash-locked dependencies; ruff, mypy --strict, bandit, pip-audit and gitleaks in CI
   and pre-commit; the Docker image runs as non-root with hash-verified wheels.
 
