@@ -23,6 +23,14 @@ All notable changes are listed here. The format follows
 - Package description no longer says "real-time": scoring is per transaction, but
   there is no streaming infrastructure.
 
+### Fixed
+
+- Flaky test on Linux CI: `test_external_provider_selected_from_settings` read "the
+  first" SAR draft from a folder shared with earlier tests, and `glob` order depends on
+  the filesystem (alphabetical on NTFS, hash order on ext4). The test now writes to its
+  own folder and checks that exactly one draft exists. Reproduced by forcing reversed
+  glob order (old test fails, new test passes); the SAR code itself was correct.
+
 ## [1.0.2] - 2026-10-20
 
 ### Fixed

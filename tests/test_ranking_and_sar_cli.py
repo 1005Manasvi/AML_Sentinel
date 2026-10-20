@@ -141,7 +141,7 @@ def test_draft_sar_falls_back_to_system1b_scores(env: Settings, evidence: pd.Dat
 
 
 def test_external_provider_selected_from_settings(
-    env: Settings, evidence: pd.DataFrame, monkeypatch: pytest.MonkeyPatch
+    env: Settings, evidence: pd.DataFrame, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     from aml_sentinel.sar import report as rep
 
@@ -166,13 +166,18 @@ def test_external_provider_selected_from_settings(
     settings = load_settings(
         _env_file=None,
         data_dir=env.data_dir,
-        reports_dir=env.reports_dir,
+        # Own output folder: earlier tests in this module leave template drafts in the
+        # shared one, and glob order is filesystem-dependent (alphabetical on NTFS,
+        # hash order on Linux ext4), so reading "the first" file was flaky in CI.
+        reports_dir=tmp_path / "reports",
         models_dir=env.models_dir,
         llm_provider="external",
         llm_api_key="test-key",
     )
     out = draft_command(settings, DatasetName.SAMPLE, top=1)
-    meta = json.loads(next(out.glob("CASE-*.json")).read_text(encoding="utf-8"))
+    drafts = sorted(out.glob("CASE-*.json"))
+    assert len(drafts) == 1
+    meta = json.loads(drafts[0].read_text(encoding="utf-8"))
     assert built
     assert meta["source"] == "stub:model"  # the valid external reply was used, no fallback
     assert meta["is_grounded"] is True
